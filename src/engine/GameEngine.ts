@@ -90,10 +90,78 @@ export class GameEngine {
       this.state.lastIncomeTime = now;
     }
 
-    // Simple bounds check (cleanup)
+    // 2. Update Troops
+    this.state.troops.forEach((troop) => {
+      let isBlocked = false;
+      let target: Troop | Castle | null = null;
+
+      // Reset states
+      troop.isAttacking = false;
+      if (troop.damageFlashTimer > 0) troop.damageFlashTimer--;
+      else troop.isTakingDamage = false;
+
+      // Check collision with enemy castle
+      const enemyCastle = troop.team === 'player' ? this.state.opponentCastle : this.state.playerCastle;
+      const distToCastle = troop.team === 'player' 
+        ? enemyCastle.x - troop.x 
+        : troop.x - (enemyCastle.x + enemyCastle.width);
+
+      if (distToCastle <= troop.attackRange) {
+        isBlocked = true;
+        target = enemyCastle;
+      }
+
+      // Check collision with other troops (1D)
+      this.state.troops.forEach((other) => {
+        if (troop.id === other.id) return;
+
+        const dist = troop.team === 'player' 
+          ? other.x - troop.x 
+          : troop.x - other.x;
+
+        // Friendly collision (stacking prevention)
+        if (troop.team === other.team) {
+          if (dist > 0 && dist < troop.size + 10) {
+            isBlocked = true;
+          }
+        } 
+        // Enemy collision
+        else {
+          if (dist > 0 && dist < troop.attackRange) {
+            isBlocked = true;
+            target = other;
+          }
+        }
+      });
+
+      // Movement or Combat
+      if (!isBlocked) {
+        troop.x += troop.speed;
+      } else if (target) {
+        // Combat logic
+        if (now - troop.lastAttackTime >= troop.attackCooldown) {
+          this.dealDamage(troop, target);
+          troop.lastAttackTime = now;
+          troop.isAttacking = true;
+        }
+      }
+    });
+
+    // 3. Remove dead troops
+    this.state.troops = this.state.troops.filter((t) => t.health > 0);
+
+    // 4. Bounds check (cleanup)
     this.state.troops = this.state.troops.filter(
       (troop) => troop.x > -100 && troop.x < CANVAS_WIDTH + 100
     );
+  }
+
+  private dealDamage(attacker: Troop, defender: Troop | Castle) {
+    defender.health -= attacker.attackDamage;
+    if ('isTakingDamage' in defender) {
+      (defender as Troop).isTakingDamage = true;
+      (defender as Troop).damageFlashTimer = 5;
+    }
   }
 
   public render(ctx: CanvasRenderingContext2D) {
