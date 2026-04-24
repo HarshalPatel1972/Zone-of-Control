@@ -50,25 +50,55 @@ body::before {
   pointer-events: none;
 }
 
-@layer utilities {
-  .brutalist-border {
-    border: var(--border-thick) solid black;
-  }
-  .brutalist-shadow {
-    box-shadow: var(--neo-shadow);
-  }
-  .brutalist-shadow-lg {
-    box-shadow: var(--neo-shadow-lg);
-  }
-  .brutalist-card {
-    @apply bg-white border-[4px] border-black brutalist-shadow transition-all;
-  }
-  .brutalist-button {
-    @apply bg-black text-white px-8 py-4 font-black uppercase border-[4px] border-black brutalist-shadow hover:bg-[var(--accent-primary)] hover:text-black active:translate-x-1 active:translate-y-1 active:shadow-none transition-all;
-  }
-  .brutalist-input {
-    @apply bg-[#EEE] p-6 text-lg font-mono outline-none border-[4px] border-black shadow-[inset_4px_4px_0px_rgba(0,0,0,0.1)];
-  }
+/* Custom Brutalist Components (Standard CSS to avoid Tailwind v4 @apply issues) */
+.brutalist-border {
+  border: var(--border-thick) solid black;
+}
+
+.brutalist-shadow {
+  box-shadow: var(--neo-shadow);
+}
+
+.brutalist-shadow-lg {
+  box-shadow: var(--neo-shadow-lg);
+}
+
+.brutalist-card {
+  background-color: white;
+  border: 4px solid black;
+  box-shadow: var(--neo-shadow);
+  transition: all 0.2s ease;
+}
+
+.brutalist-button {
+  background-color: black;
+  color: white;
+  padding: 1rem 2rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  border: 4px solid black;
+  box-shadow: var(--neo-shadow);
+  transition: all 0.2s ease;
+}
+
+.brutalist-button:hover {
+  background-color: var(--accent-primary);
+  color: black;
+}
+
+.brutalist-button:active {
+  transform: translate(4px, 4px);
+  box-shadow: none;
+}
+
+.brutalist-input {
+  background-color: #EEE;
+  padding: 1.5rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.125rem;
+  outline: none;
+  border: 4px solid black;
+  box-shadow: inset 4px 4px 0px rgba(0,0,0,0.1);
 }
 
 /* Custom Scrollbar */
