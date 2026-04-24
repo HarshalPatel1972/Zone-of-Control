@@ -11,7 +11,7 @@ export const useMultiplayer = (roomId: string, onEnemySpawn: (team: Team, type: 
   const [role, setRole] = useState<'host' | 'guest' | null>(null);
 
   useEffect(() => {
-    const socket = io('http://localhost:3001');
+    const socket = io(process.env.NEXT_PUBLIC_SOCKET_SERVER_URL || 'https://zone-of-control.onrender.com');
     socketRef.current = socket;
 
     socket.on('connect', () => {
