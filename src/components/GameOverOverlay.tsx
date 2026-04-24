@@ -6,9 +6,10 @@ import { GameStatus } from '../engine/types';
 interface GameOverOverlayProps {
   status: GameStatus;
   onRestart: () => void;
+  onExit: () => void;
 }
 
-export const GameOverOverlay: React.FC<GameOverOverlayProps> = ({ status, onRestart }) => {
+export const GameOverOverlay: React.FC<GameOverOverlayProps> = ({ status, onRestart, onExit }) => {
   if (status === 'playing') return null;
 
   const isVictory = status === 'victory';
@@ -24,12 +25,21 @@ export const GameOverOverlay: React.FC<GameOverOverlayProps> = ({ status, onRest
           {isVictory ? 'The enemy stronghold has fallen.' : 'Our defense has been breached.'}
         </p>
 
-        <button
-          onClick={onRestart}
-          className="bg-black text-white px-16 py-6 text-4xl font-black uppercase border-[6px] border-black hover:bg-white hover:text-black transition-all active:translate-x-2 active:translate-y-2 active:shadow-none shadow-[10px_10px_0px_0px_rgba(0,0,0,0.5)]"
-        >
-          Restart
-        </button>
+        <div className="flex flex-col gap-4">
+          <button
+            onClick={onRestart}
+            className="bg-black text-white px-16 py-6 text-4xl font-black uppercase border-[6px] border-black hover:bg-white hover:text-black transition-all active:translate-x-2 active:translate-y-2 active:shadow-none shadow-[10px_10px_0px_0px_rgba(0,0,0,0.5)]"
+          >
+            Restart
+          </button>
+          
+          <button
+            onClick={onExit}
+            className="bg-white text-black px-12 py-4 text-xl font-bold uppercase border-[4px] border-black hover:bg-black hover:text-white transition-all active:translate-x-1 active:translate-y-1 active:shadow-none shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
+          >
+            Return to Lobby
+          </button>
+        </div>
       </div>
 
       <style jsx>{`
