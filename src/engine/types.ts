@@ -29,11 +29,16 @@ export interface Troop {
   damageFlashTimer: number; // frames to flash
 }
 
+export type GameStatus = 'playing' | 'victory' | 'defeat';
+
 export interface GameState {
   playerCastle: Castle;
   opponentCastle: Castle;
   troops: Troop[];
   gold: number;
+  opponentGold: number;
   lastIncomeTime: number;
+  lastAiDecisionTime: number;
+  status: GameStatus;
   isPaused: boolean;
 }
