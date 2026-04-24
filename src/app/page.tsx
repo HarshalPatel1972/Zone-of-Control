@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { GameCanvas } from '@/components/GameCanvas';
+import { GameOverOverlay } from '@/components/GameOverOverlay';
 import { GameEngine, TROOP_STATS } from '@/engine/GameEngine';
 
 export default function Home() {
@@ -21,6 +22,11 @@ export default function Home() {
     setGameState(engine.getState());
   };
 
+  const handleRestart = () => {
+    engine.reset();
+    setGameState(engine.getState());
+  };
+
   const canAfford = gameState.gold >= TROOP_STATS.BASIC.cost;
 
   return (
@@ -30,18 +36,29 @@ export default function Home() {
         <header className="bg-black text-white p-6 border-[4px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,0.3)] flex justify-between items-center">
           <div>
             <h1 className="text-4xl font-black uppercase tracking-tighter">Zone of Control</h1>
-            <p className="text-sm mt-2 opacity-80 italic underline decoration-white/40">Phase 2: Combat & Economy // Neo-Brutalist Build</p>
+            <p className="text-sm mt-2 opacity-80 italic underline decoration-white/40">Phase 3: AI & Game Over // Neo-Brutalist Build</p>
           </div>
           
-          {/* Gold Display */}
-          <div className="bg-white text-black p-4 border-[4px] border-black shadow-[6px_6px_0px_0px_rgba(255,255,255,0.2)]">
-            <span className="block text-xs font-black uppercase opacity-50">Treasury</span>
-            <span className="text-3xl font-black">${gameState.gold}</span>
+          <div className="flex gap-4">
+            {/* Opponent Gold (Simplified for player knowledge) */}
+            <div className="bg-zinc-800 text-white p-4 border-[4px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)]">
+              <span className="block text-[10px] font-black uppercase opacity-50">Enemy Funds</span>
+              <span className="text-xl font-black">${gameState.opponentGold}</span>
+            </div>
+            
+            {/* Gold Display */}
+            <div className="bg-white text-black p-4 border-[4px] border-black shadow-[6px_6px_0px_0px_rgba(255,255,255,0.2)]">
+              <span className="block text-xs font-black uppercase opacity-50">Treasury</span>
+              <span className="text-3xl font-black">${gameState.gold}</span>
+            </div>
           </div>
         </header>
 
-        {/* Game Canvas */}
-        <GameCanvas engine={engine} />
+        {/* Game Canvas Container */}
+        <div className="relative">
+          <GameCanvas engine={engine} />
+          <GameOverOverlay status={gameState.status} onRestart={handleRestart} />
+        </div>
 
         {/* UI Controls */}
         <div className="bg-white p-8 border-[6px] border-black shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] flex flex-wrap gap-6 items-center">
