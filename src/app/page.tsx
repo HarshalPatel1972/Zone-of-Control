@@ -3,6 +3,7 @@
 import { nanoid } from 'nanoid';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 
 export default function LandingPage() {
   const router = useRouter();
