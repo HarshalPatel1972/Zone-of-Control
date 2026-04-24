@@ -88,6 +88,11 @@ export class GameEngine {
     if (now - this.state.lastIncomeTime >= 1000) {
       this.state.gold += 10;
       this.state.lastIncomeTime = now;
+      
+      // Auto-spawn opponent every 5 seconds for combat testing
+      if (Math.random() < 0.2) { // 20% chance every second ~= once every 5s
+        this.spawnTroop('opponent');
+      }
     }
 
     // 2. Update Troops
