@@ -1,114 +1,62 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;900&family=JetBrains+Mono:wght@400;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;900&family=Almendra:ital,wght@0,400;0,700;1,400&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --bg-color: #0D0D0D;
-  --panel-color: #1A1A1A;
-  --accent-primary: #CCFF00; /* Acid Green */
-  --accent-secondary: #FF3E00; /* Harsh Orange */
-  --text-main: #FFFFFF;
-  --border-thick: 4px;
-  --neo-shadow: 8px 8px 0px 0px rgba(0, 0, 0, 1);
-  --neo-shadow-lg: 12px 12px 0px 0px rgba(0, 0, 0, 1);
+  --parchment: #F4E4BC;
+  --ink: #2C1E0F;
+  --gold: #D4AF37;
+  --victory-green: #2D5A27;
+  --defeat-red: #8B0000;
+  --ui-bg: rgba(44, 30, 15, 0.9);
 }
 
 body {
-  background-color: var(--bg-color);
-  color: var(--text-main);
-  font-family: 'Outfit', sans-serif;
-  overflow-x: hidden;
+  background-color: #1a0f00;
+  color: var(--parchment);
+  font-family: 'Almendra', serif;
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 86c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zm66-3c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zm-46-17c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zm54-46c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM57 6c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zm-8 24c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM14 45c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%232c1e0f' fill-opacity='0.2' fill-rule='evenodd'/%3E%3C/svg%3E");
 }
 
-/* Noise Texture Overlay */
-body::before {
-  content: "";
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-  opacity: 0.05;
-  pointer-events: none;
-  z-index: 9999;
+.fancy-border {
+  border: 4px solid var(--gold);
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.3), inset 0 0 10px rgba(0,0,0,0.5);
+  background: var(--ui-bg);
 }
 
-/* Scanline Effect */
-.scanlines {
-  position: relative;
-  overflow: hidden;
-}
-.scanlines::after {
-  content: " ";
-  display: block;
-  position: absolute;
-  top: 0; left: 0; bottom: 0; right: 0;
-  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-  z-index: 2;
-  background-size: 100% 2px, 3px 100%;
-  pointer-events: none;
+.game-title {
+  font-family: 'Cinzel', serif;
+  letter-spacing: 0.1em;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
 }
 
-/* Custom Brutalist Components (Standard CSS to avoid Tailwind v4 @apply issues) */
-.brutalist-border {
-  border: var(--border-thick) solid black;
+.unit-button {
+  @apply relative overflow-hidden transition-all duration-300 transform hover:scale-105 active:scale-95;
+  background: linear-gradient(135deg, #3d2b16 0%, #2c1e0f 100%);
+  border: 2px solid var(--gold);
 }
 
-.brutalist-shadow {
-  box-shadow: var(--neo-shadow);
+.unit-button:disabled {
+  @apply grayscale opacity-50 cursor-not-allowed transform-none;
 }
 
-.brutalist-shadow-lg {
-  box-shadow: var(--neo-shadow-lg);
-}
-
-.brutalist-card {
-  background-color: white;
-  border: 4px solid black;
-  box-shadow: var(--neo-shadow);
-  transition: all 0.2s ease;
-}
-
-.brutalist-button {
-  background-color: black;
-  color: white;
-  padding: 1rem 2rem;
-  font-weight: 900;
-  text-transform: uppercase;
-  border: 4px solid black;
-  box-shadow: var(--neo-shadow);
-  transition: all 0.2s ease;
-}
-
-.brutalist-button:hover {
-  background-color: var(--accent-primary);
-  color: black;
-}
-
-.brutalist-button:active {
-  transform: translate(4px, 4px);
-  box-shadow: none;
-}
-
-.brutalist-input {
-  background-color: #EEE;
-  padding: 1.5rem;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 1.125rem;
-  outline: none;
-  border: 4px solid black;
-  box-shadow: inset 4px 4px 0px rgba(0,0,0,0.1);
+.gold-display {
+  background: radial-gradient(circle, #D4AF37 0%, #8B6B00 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-family: 'Cinzel', serif;
 }
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 12px;
+  width: 10px;
 }
 ::-webkit-scrollbar-track {
-  background: black;
+  background: #1a0f00;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--accent-primary);
-  border: 3px solid black;
+  background: var(--gold);
+  border-radius: 5px;
 }

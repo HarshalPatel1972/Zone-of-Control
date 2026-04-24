@@ -20,66 +20,39 @@ export const LobbyOverlay: React.FC<LobbyOverlayProps> = ({ roomId, isHost, onCo
   };
 
   return (
-    <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/90 backdrop-blur-xl animate-in fade-in duration-700">
-      <div className="bg-[#111] p-12 border-[8px] border-black shadow-[30px_30px_0px_0px_rgba(0,0,0,0.5)] text-center max-w-3xl w-full mx-4 relative overflow-hidden">
-        {/* Decorative corner accents */}
-        <div className="absolute top-0 left-0 w-16 h-16 border-t-8 border-l-8 border-[var(--accent-primary)]"></div>
-        <div className="absolute bottom-0 right-0 w-16 h-16 border-b-8 border-r-8 border-[var(--accent-primary)]"></div>
-
-        <div className="mb-12">
-          <div className="inline-block bg-[var(--accent-primary)] text-black px-4 py-1 text-xs font-black uppercase mb-4 tracking-widest">
-            Status: INITIALIZING LOBBY
-          </div>
-          <h2 className="text-6xl font-black uppercase leading-none tracking-tighter text-white mb-6">
-            Waiting for <br /> Opponent
+    <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/80 backdrop-blur-md">
+      <div className="fancy-border p-12 text-center max-w-2xl w-full mx-4 space-y-8 bg-[#2c1e0f]/95 shadow-[0_0_50px_rgba(0,0,0,0.9)]">
+        
+        <div className="space-y-4">
+          <h2 className="game-title text-5xl font-black uppercase text-[var(--gold)]">
+            Seeking Allies
           </h2>
-          <div className="h-6 bg-black w-full brutalist-border p-1">
-            <div className="h-full bg-[var(--accent-primary)] animate-[progress_1.5s_infinite_linear]"></div>
-          </div>
+          <div className="h-1 w-24 bg-[var(--gold)] mx-auto opacity-50"></div>
+          <p className="text-xl italic opacity-80">"Victory requires a worthy adversary. Send your herald to the neighboring kingdom."</p>
         </div>
 
-        <div className="space-y-8 bg-white/5 p-8 border-[4px] border-white/10">
-          <p className="text-lg font-bold uppercase text-white/60 tracking-wider">
-            Send this invite link to your friend to start the battle:
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-0 brutalist-border brutalist-shadow">
+        <div className="space-y-6">
+          <div className="flex flex-col gap-4">
             <input
               type="text"
               readOnly
               value={lobbyUrl}
-              className="flex-1 bg-black text-white p-6 text-sm font-mono outline-none border-b-[4px] sm:border-b-0 sm:border-r-[4px] border-black"
+              className="w-full bg-[#1a0f00] text-[var(--gold)] p-4 text-center text-sm font-mono border-2 border-[#3d2b16] outline-none"
             />
             <button
               onClick={handleCopy}
-              className={`px-10 py-6 font-black uppercase transition-all flex items-center justify-center min-w-[200px] text-xl ${
-                copied ? 'bg-[var(--accent-primary)] text-black' : 'bg-white text-black hover:bg-[var(--accent-primary)]'
-              }`}
+              className="w-full py-4 bg-gradient-to-b from-[#D4AF37] to-[#8B6B00] text-[#1a0f00] font-black uppercase text-xl hover:brightness-110 active:scale-95 transition-all"
             >
-              {copied ? 'Link Copied' : 'Copy Invite'}
+              {copied ? 'Herald Sent!' : 'Copy Invite Link'}
             </button>
           </div>
+        </div>
 
-          <div className="grid grid-cols-2 gap-8 pt-8">
-            <div className="text-left border-l-4 border-[var(--accent-primary)] pl-4">
-              <span className="block text-[10px] font-black uppercase text-white/30 mb-1 tracking-widest">Room ID</span>
-              <span className="text-3xl font-black uppercase text-white font-mono">{roomId.substring(0, 8)}</span>
-            </div>
-            <div className="text-right border-r-4 border-[var(--accent-primary)] pr-4">
-              <span className="block text-[10px] font-black uppercase text-white/30 mb-1 tracking-widest">Status</span>
-              <span className="text-3xl font-black uppercase text-[var(--accent-primary)] animate-pulse">Scanning</span>
-            </div>
-          </div>
+        <div className="pt-4 flex justify-center items-center gap-2">
+            <div className="w-3 h-3 bg-[var(--gold)] rounded-full animate-pulse"></div>
+            <span className="text-sm font-bold uppercase tracking-widest opacity-60">Waiting for Opposition...</span>
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes progress {
-          0% { width: 0%; margin-left: 0%; }
-          50% { width: 40%; margin-left: 30%; }
-          100% { width: 0%; margin-left: 100%; }
-        }
-      `}</style>
     </div>
   );
 };
