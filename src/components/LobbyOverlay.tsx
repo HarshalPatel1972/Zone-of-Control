@@ -20,58 +20,64 @@ export const LobbyOverlay: React.FC<LobbyOverlayProps> = ({ roomId, isHost, onCo
   };
 
   return (
-    <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/95 backdrop-blur-md">
-      <div className="bg-white p-12 border-[10px] border-black shadow-[30px_30px_0px_0px_rgba(255,255,255,0.2)] text-center max-w-3xl w-full mx-4">
+    <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/90 backdrop-blur-xl animate-in fade-in duration-700">
+      <div className="bg-[#111] p-12 border-[8px] border-black shadow-[30px_30px_0px_0px_rgba(0,0,0,0.5)] text-center max-w-3xl w-full mx-4 relative overflow-hidden">
+        {/* Decorative corner accents */}
+        <div className="absolute top-0 left-0 w-16 h-16 border-t-8 border-l-8 border-[var(--accent-primary)]"></div>
+        <div className="absolute bottom-0 right-0 w-16 h-16 border-b-8 border-r-8 border-[var(--accent-primary)]"></div>
+
         <div className="mb-12">
-          <h2 className="text-7xl font-black uppercase leading-none tracking-tighter mb-4 animate-pulse">
-            Waiting for Connection
+          <div className="inline-block bg-[var(--accent-primary)] text-black px-4 py-1 text-xs font-black uppercase mb-4 tracking-widest">
+            Protocol: SECURE_TUNNEL
+          </div>
+          <h2 className="text-6xl font-black uppercase leading-none tracking-tighter text-white mb-6">
+            Establishing <br /> Connection
           </h2>
-          <div className="h-4 bg-black w-full overflow-hidden">
-            <div className="h-full bg-white w-1/3 animate-[slide_2s_infinite_linear]" style={{
-              animation: 'slide 2s infinite linear'
-            }}></div>
+          <div className="h-6 bg-black w-full brutalist-border p-1">
+            <div className="h-full bg-[var(--accent-primary)] animate-[progress_1.5s_infinite_linear]"></div>
           </div>
         </div>
 
-        <div className="space-y-8">
-          <p className="text-xl font-bold uppercase border-b-4 border-black pb-4 text-left">
-            Share this link to recruit your opponent:
+        <div className="space-y-8 bg-white/5 p-8 border-[4px] border-white/10">
+          <p className="text-lg font-bold uppercase text-white/60 tracking-wider">
+            Share transmission link to recruit opposition:
           </p>
 
-          <div className="flex gap-0 border-[6px] border-black">
+          <div className="flex flex-col sm:flex-row gap-0 brutalist-border brutalist-shadow">
             <input
               type="text"
               readOnly
               value={lobbyUrl}
-              className="flex-1 bg-[#EEE] p-6 text-lg font-mono outline-none border-r-[6px] border-black"
+              className="flex-1 bg-black text-white p-6 text-sm font-mono outline-none border-b-[4px] sm:border-b-0 sm:border-r-[4px] border-black"
             />
             <button
               onClick={handleCopy}
-              className={`px-10 font-black uppercase transition-all flex items-center justify-center min-w-[200px] ${
-                copied ? 'bg-white text-black' : 'bg-black text-white hover:invert'
+              className={`px-10 py-6 font-black uppercase transition-all flex items-center justify-center min-w-[200px] text-xl ${
+                copied ? 'bg-[var(--accent-primary)] text-black' : 'bg-white text-black hover:bg-[var(--accent-primary)]'
               }`}
             >
-              {copied ? 'Copied!' : 'Copy Link'}
+              {copied ? 'Link Active' : 'Copy Signal'}
             </button>
           </div>
 
           <div className="grid grid-cols-2 gap-8 pt-8">
-            <div className="text-left">
-              <span className="block text-xs font-black uppercase opacity-50 mb-2">Room Identifier</span>
-              <span className="text-3xl font-black uppercase">{roomId}</span>
+            <div className="text-left border-l-4 border-[var(--accent-primary)] pl-4">
+              <span className="block text-[10px] font-black uppercase text-white/30 mb-1 tracking-widest">Room ID</span>
+              <span className="text-3xl font-black uppercase text-white font-mono">{roomId.substring(0, 8)}</span>
             </div>
-            <div className="text-right">
-              <span className="block text-xs font-black uppercase opacity-50 mb-2">Protocol</span>
-              <span className="text-3xl font-black uppercase">Socket.IO / P2P</span>
+            <div className="text-right border-r-4 border-[var(--accent-primary)] pr-4">
+              <span className="block text-[10px] font-black uppercase text-white/30 mb-1 tracking-widest">Status</span>
+              <span className="text-3xl font-black uppercase text-[var(--accent-primary)] animate-pulse">Scanning</span>
             </div>
           </div>
         </div>
       </div>
 
       <style jsx>{`
-        @keyframes slide {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(300%); }
+        @keyframes progress {
+          0% { width: 0%; margin-left: 0%; }
+          50% { width: 40%; margin-left: 30%; }
+          100% { width: 0%; margin-left: 100%; }
         }
       `}</style>
     </div>
