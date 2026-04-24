@@ -82,12 +82,23 @@ export default function RoomPage() {
               <span className="text-xl font-black">${enemyGold}</span>
             </div>
             
-            <div className="bg-white text-black p-4 border-[4px] border-black shadow-[6px_6px_0px_0px_rgba(255,255,255,0.2)]">
+            <div className={`bg-white text-black p-4 border-[4px] border-black shadow-[6px_6px_0px_0px_rgba(255,255,255,0.2)] transition-all ${myGold < TROOP_STATS.BASIC.cost ? 'bg-red-50 text-red-900 border-red-900 shadow-none scale-95' : 'bg-white'}`}>
               <span className="block text-xs font-black uppercase opacity-50">My Treasury</span>
               <span className="text-3xl font-black">${myGold}</span>
             </div>
           </div>
         </header>
+
+        <style jsx global>{`
+          @keyframes pulse-gold {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); background-color: #fef08a; }
+            100% { transform: scale(1); }
+          }
+          .pulse-active {
+            animation: pulse-gold 0.2s ease-in-out;
+          }
+        `}</style>
 
         {/* Game Area */}
         <div className="relative border-[10px] border-black shadow-[20px_20px_0px_0px_rgba(0,0,0,1)] bg-white">
