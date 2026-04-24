@@ -5,8 +5,9 @@ import { useParams, useRouter } from 'next/navigation';
 import { GameCanvas } from '@/components/GameCanvas';
 import { GameOverOverlay } from '@/components/GameOverOverlay';
 import { LobbyOverlay } from '@/components/LobbyOverlay';
-import { GameEngine, TROOP_STATS } from '@/engine/GameEngine';
+import { GameEngine, TROOP_STATS, CASTLE_UPGRADES } from '@/engine/GameEngine';
 import { useMultiplayer } from '@/hooks/useMultiplayer';
+import { TroopType } from '@/engine/types';
 
 export default function RoomPage() {
   const { id: roomId } = useParams() as { id: string };
@@ -15,173 +16,195 @@ export default function RoomPage() {
   const [gameState, setGameState] = useState(engine.getState());
   const [ping, setPing] = useState(0);
 
-  // Initialize engine for multiplayer
   useEffect(() => {
     engine.setMultiplayer(true);
     engine.enableAudio();
   }, [engine]);
 
   const { isGameStarted, role, sendSpawn } = useMultiplayer(roomId, (team, type) => {
-    engine.spawnRemoteTroop(team);
+    if (type === 'upgrade') {
+      engine.upgradeCastle(team);
+    } else {
+      engine.spawnRemoteTroop(team, type as TroopType);
+    }
     setGameState(engine.getState());
-    setPing(Math.floor(Math.random() * 20) + 10);
+    setPing(Math.floor(Math.random() * 15) + 5);
   });
 
   const isHost = role === 'host';
+  const handleExit = () => router.push('/');
 
-  const handleExit = () => {
-    router.push('/');
-  };
-
-  // Sync UI state with Engine state
   useEffect(() => {
     if (!isGameStarted) return;
-    const interval = setInterval(() => {
-      setGameState(engine.getState());
-    }, 100);
+    const interval = setInterval(() => setGameState(engine.getState()), 60);
     return () => clearInterval(interval);
   }, [engine, isGameStarted]);
 
-  const handleSpawnTroop = () => {
+  const handleSpawn = (type: TroopType) => {
     if (!isGameStarted) return;
-    const myTeam = isHost ? 'player' : 'opponent';
-    const currentGold = isHost ? gameState.gold : gameState.opponentGold;
-    if (currentGold < TROOP_STATS.BASIC.cost) return;
+    const team = isHost ? 'player' : 'opponent';
+    const gold = isHost ? gameState.gold : gameState.opponentGold;
+    if (gold < TROOP_STATS[type.toUpperCase() as keyof typeof TROOP_STATS].cost) return;
 
-    engine.spawnTroop(myTeam);
-    sendSpawn(myTeam, 'basic');
+    engine.spawnTroop(team, type);
+    sendSpawn(team, type);
     setGameState(engine.getState());
   };
 
-  const handleRestart = () => {
-    engine.reset();
+  const handleUpgrade = () => {
+    if (!isGameStarted) return;
+    const team = isHost ? 'player' : 'opponent';
+    const castle = team === 'player' ? gameState.playerCastle : gameState.opponentCastle;
+    const nextLevel = (castle.level + 1) as 2 | 3;
+    const upgrade = CASTLE_UPGRADES[nextLevel];
+
+    if (!upgrade) return;
+    const gold = isHost ? gameState.gold : gameState.opponentGold;
+    if (gold < upgrade.cost) return;
+
+    engine.upgradeCastle(team);
+    sendSpawn(team, 'upgrade');
     setGameState(engine.getState());
   };
 
   const myGold = isHost ? gameState.gold : gameState.opponentGold;
   const enemyGold = isHost ? gameState.opponentGold : gameState.gold;
-  const canAfford = myGold >= TROOP_STATS.BASIC.cost;
 
   return (
-    <main className="min-h-screen bg-[#0D0D0D] p-4 sm:p-8 flex flex-col items-center justify-center font-sans overflow-hidden scanlines">
-      <div className="max-w-7xl w-full space-y-6 relative z-10">
+    <main className="min-h-screen bg-[#080808] text-white p-2 sm:p-6 flex flex-col font-sans scanlines overflow-hidden">
+      
+      {/* Header Panel */}
+      <div className="max-w-[1600px] mx-auto w-full grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
         
-        {/* Instrumentation-style Header */}
-        <header className="flex flex-col md:flex-row gap-4 items-stretch">
-          <div className="bg-black border-[4px] border-black brutalist-shadow p-6 flex-1 flex flex-col justify-between">
-            <div className="flex justify-between items-start">
-              <div>
-                <h1 className="text-3xl font-black uppercase tracking-tighter leading-none">
-                  Sector <span className="text-[var(--accent-primary)]">{roomId.substring(0, 4)}</span>
-                </h1>
-                <p className="text-[10px] font-bold text-white/40 uppercase mt-2 tracking-widest">
-                  Operational Theater // Sync Status: {isGameStarted ? 'Active' : 'Locked'}
-                </p>
-              </div>
-              <div className="bg-[var(--accent-primary)] text-black px-3 py-1 text-[10px] font-black uppercase">
-                {isHost ? 'Host Command' : 'Remote Guest'}
-              </div>
-            </div>
-            
-            <div className="mt-6 flex gap-8">
-              <div className="flex flex-col">
-                <span className="text-[9px] font-black uppercase text-white/30 tracking-widest">Latency</span>
-                <span className={`text-xl font-black ${ping > 100 ? 'text-red-500' : 'text-green-500'}`}>
-                  {ping}ms
-                </span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[9px] font-black uppercase text-white/30 tracking-widest">Troops</span>
-                <span className="text-xl font-black">{gameState.troops.length}</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[9px] font-black uppercase text-white/30 tracking-widest">Status</span>
-                <span className="text-xl font-black uppercase text-[var(--accent-primary)]">Online</span>
-              </div>
-            </div>
+        {/* Connection Status */}
+        <div className="bg-zinc-900 border-2 border-zinc-800 p-4 brutalist-shadow flex flex-col justify-center">
+          <div className="flex justify-between items-center mb-1">
+            <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Connection</span>
+            <span className="bg-[var(--accent-primary)] text-black px-2 py-0.5 text-[10px] font-black uppercase">
+              {isGameStarted ? 'Battle Active' : 'Waiting...'}
+            </span>
           </div>
-
-          {/* Economy Display */}
-          <div className="flex gap-4 min-w-[320px]">
-             <div className="flex-1 bg-[#1A1A1A] brutalist-border brutalist-shadow p-4 flex flex-col justify-center items-center">
-                <span className="text-[9px] font-black uppercase text-white/40 mb-1">Host Treasury</span>
-                <span className="text-3xl font-black font-mono text-white">${gameState.gold}</span>
-             </div>
-             <div className="flex-1 bg-[var(--accent-primary)] brutalist-border brutalist-shadow p-4 flex flex-col justify-center items-center">
-                <span className="text-[9px] font-black uppercase text-black/60 mb-1">Guest Treasury</span>
-                <span className="text-3xl font-black font-mono text-black">${gameState.opponentGold}</span>
-             </div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-black text-white uppercase tracking-tighter">
+              {isHost ? 'Command Center' : 'Remote Force'}
+            </span>
+            <span className="text-xs font-mono text-zinc-500">#{roomId.substring(0,6)}</span>
           </div>
-        </header>
-
-        {/* Combat Theater */}
-        <div className="relative bg-white brutalist-border brutalist-shadow-lg overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-transparent via-[var(--accent-primary)] to-transparent opacity-30 animate-pulse"></div>
-          <GameCanvas engine={engine} />
-          
-          {!isGameStarted && (
-            <LobbyOverlay 
-              roomId={roomId} 
-              isHost={isHost} 
-              onCopy={() => {}} 
-            />
-          )}
-
-          <GameOverOverlay 
-            status={gameState.status} 
-            onRestart={handleRestart} 
-            onExit={handleExit}
-          />
         </div>
 
-        {/* Tactical Controls */}
-        <div className="bg-[#1A1A1A] p-6 brutalist-border brutalist-shadow flex flex-col md:flex-row gap-6 items-center">
-          <div className="flex-1 flex gap-4 w-full md:w-auto">
-            <button
-              onClick={handleSpawnTroop}
-              disabled={!canAfford || !isGameStarted}
-              className={`flex-1 h-20 text-2xl font-black uppercase border-[4px] border-black transition-all flex items-center justify-center gap-4 relative overflow-hidden ${
-                canAfford && isGameStarted
-                  ? 'bg-[var(--accent-primary)] text-black hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]' 
-                  : 'bg-zinc-800 text-zinc-600 border-zinc-700 cursor-not-allowed'
-              }`}
-            >
-              <span className="relative z-10">Deploy Basic Unit</span>
-              <span className="bg-black text-[var(--accent-primary)] px-2 py-1 text-xs font-black brutalist-border group-hover:bg-white transition-colors">
-                {TROOP_STATS.BASIC.cost}G
-              </span>
-              {canAfford && isGameStarted && (
-                <div className="absolute top-0 left-0 w-full h-1 bg-white/40 animate-[slide_1s_infinite]"></div>
-              )}
-            </button>
+        {/* Global Stats (Gold) */}
+        <div className="bg-black border-2 border-zinc-800 p-4 brutalist-shadow flex justify-around items-center">
+          <div className="text-center px-4">
+            <span className="block text-[9px] font-black uppercase text-zinc-500 mb-1">Your Gold</span>
+            <span className="text-4xl font-black text-[var(--accent-primary)] font-mono">${myGold}</span>
           </div>
+          <div className="w-px h-12 bg-zinc-800"></div>
+          <div className="text-center px-4">
+            <span className="block text-[9px] font-black uppercase text-zinc-500 mb-1">Enemy Gold</span>
+            <span className="text-4xl font-black text-[var(--accent-secondary)] font-mono">${enemyGold}</span>
+          </div>
+        </div>
 
-          <div className="flex gap-4 w-full md:w-auto">
-            <div className="bg-black text-white p-4 border-[4px] border-black flex flex-col justify-center items-center min-w-[140px]">
-               <span className="text-[9px] font-black uppercase text-white/40 mb-1 italic">Castle Integrity</span>
-               <div className="flex items-end gap-1">
-                 <span className="text-3xl font-black text-[var(--accent-secondary)]">
-                   {Math.ceil((gameState.playerCastle.health / gameState.playerCastle.maxHealth) * 100)}
-                 </span>
-                 <span className="text-sm font-black mb-1 opacity-40">%</span>
-               </div>
-            </div>
-            <button 
-              onClick={handleExit}
-              className="bg-zinc-800 text-white px-6 py-4 border-[4px] border-black font-black uppercase text-xs hover:bg-red-600 transition-colors"
-            >
-              Aband.
-            </button>
+        {/* Tactical Info */}
+        <div className="bg-zinc-900 border-2 border-zinc-800 p-4 brutalist-shadow flex justify-between items-center">
+          <div>
+            <span className="block text-[9px] font-black uppercase text-zinc-500 mb-1">Network Ping</span>
+            <span className="text-xl font-black text-green-500">{ping}ms</span>
           </div>
+          <button 
+            onClick={handleExit}
+            className="px-6 py-2 bg-zinc-800 border-2 border-zinc-700 text-xs font-black uppercase hover:bg-red-600 transition-colors"
+          >
+            Leave Battle
+          </button>
         </div>
       </div>
 
-      <style jsx>{`
-        @keyframes slide {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
-      `}</style>
+      {/* Main Battlefield Canvas */}
+      <div className="flex-1 relative bg-[#111] border-4 border-zinc-800 brutalist-shadow-lg overflow-hidden flex items-center justify-center mb-4">
+        <div className="w-full h-full max-w-[1600px] aspect-[16/9]">
+          <GameCanvas engine={engine} />
+        </div>
+        
+        {!isGameStarted && (
+          <LobbyOverlay roomId={roomId} isHost={isHost} onCopy={() => {}} />
+        )}
+
+        <GameOverOverlay 
+          status={gameState.status} 
+          onRestart={() => engine.reset()} 
+          onExit={handleExit}
+        />
+      </div>
+
+      {/* Control Dock */}
+      <div className="max-w-[1200px] mx-auto w-full bg-[#1A1A1A] p-4 border-2 border-zinc-800 brutalist-shadow grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3">
+        
+        {/* Troop: Knight */}
+        <button
+          onClick={() => handleSpawn('basic')}
+          disabled={!isGameStarted || myGold < TROOP_STATS.BASIC.cost}
+          className="group flex flex-col items-center justify-center p-4 bg-zinc-900 border-2 border-zinc-800 hover:border-[var(--accent-primary)] hover:bg-black transition-all disabled:opacity-30 disabled:grayscale"
+        >
+          <span className="text-[10px] font-black uppercase text-zinc-500 mb-2">Basic Unit</span>
+          <span className="text-lg font-black uppercase leading-none mb-2 text-white">Knight</span>
+          <span className="bg-black text-[var(--accent-primary)] px-2 py-0.5 text-xs font-black border border-zinc-800 group-hover:border-[var(--accent-primary)]">
+            ${TROOP_STATS.BASIC.cost}
+          </span>
+        </button>
+
+        {/* Troop: Archer */}
+        <button
+          onClick={() => handleSpawn('archer')}
+          disabled={!isGameStarted || myGold < TROOP_STATS.ARCHER.cost}
+          className="group flex flex-col items-center justify-center p-4 bg-zinc-900 border-2 border-zinc-800 hover:border-cyan-400 hover:bg-black transition-all disabled:opacity-30 disabled:grayscale"
+        >
+          <span className="text-[10px] font-black uppercase text-zinc-500 mb-2">Ranged Support</span>
+          <span className="text-lg font-black uppercase leading-none mb-2 text-white">Archer</span>
+          <span className="bg-black text-cyan-400 px-2 py-0.5 text-xs font-black border border-zinc-800 group-hover:border-cyan-400">
+            ${TROOP_STATS.ARCHER.cost}
+          </span>
+        </button>
+
+        {/* Troop: Berserker */}
+        <button
+          onClick={() => handleSpawn('berserker')}
+          disabled={!isGameStarted || myGold < TROOP_STATS.BERSERKER.cost}
+          className="group flex flex-col items-center justify-center p-4 bg-zinc-900 border-2 border-zinc-800 hover:border-[var(--accent-secondary)] hover:bg-black transition-all disabled:opacity-30 disabled:grayscale"
+        >
+          <span className="text-[10px] font-black uppercase text-zinc-500 mb-2">Heavy Offense</span>
+          <span className="text-lg font-black uppercase leading-none mb-2 text-white">Berserker</span>
+          <span className="bg-black text-[var(--accent-secondary)] px-2 py-0.5 text-xs font-black border border-zinc-800 group-hover:border-[var(--accent-secondary)]">
+            ${TROOP_STATS.BERSERKER.cost}
+          </span>
+        </button>
+
+        {/* Upgrade: Castle */}
+        <button
+          onClick={handleUpgrade}
+          disabled={!isGameStarted || (isHost ? gameState.playerCastle.level >= 3 : gameState.opponentCastle.level >= 3)}
+          className="group flex flex-col items-center justify-center p-4 bg-zinc-900 border-2 border-zinc-800 hover:border-white hover:bg-black transition-all disabled:opacity-30 disabled:grayscale"
+        >
+          <span className="text-[10px] font-black uppercase text-zinc-500 mb-2">Defensive Tech</span>
+          <span className="text-lg font-black uppercase leading-none mb-2 text-white">Fortify Castle</span>
+          <span className="bg-white text-black px-2 py-0.5 text-xs font-black border border-black">
+             LVL {(isHost ? gameState.playerCastle.level : gameState.opponentCastle.level)} → NEXT
+          </span>
+        </button>
+
+        {/* Integrity Stats */}
+        <div className="hidden md:flex flex-col items-center justify-center p-4 bg-black border-2 border-zinc-800">
+          <span className="text-[10px] font-black uppercase text-zinc-500 mb-1">Castle Health</span>
+          <div className="flex items-baseline gap-1">
+            <span className="text-3xl font-black text-[var(--accent-secondary)]">
+              {Math.ceil(( (isHost ? gameState.playerCastle.health : gameState.opponentCastle.health) / (isHost ? gameState.playerCastle.maxHealth : gameState.opponentCastle.maxHealth) ) * 100)}
+            </span>
+            <span className="text-sm font-black opacity-30">%</span>
+          </div>
+        </div>
+
+      </div>
+
     </main>
   );
 }
