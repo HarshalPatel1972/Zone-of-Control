@@ -31,14 +31,28 @@ export interface Troop {
 
 export type GameStatus = 'playing' | 'victory' | 'defeat';
 
+export interface Particle {
+  id: string;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  size: number;
+  color: string;
+  life: number; // 1.0 to 0.0
+}
+
 export interface GameState {
   playerCastle: Castle;
   opponentCastle: Castle;
   troops: Troop[];
+  particles: Particle[];
   gold: number;
   opponentGold: number;
   lastIncomeTime: number;
   lastAiDecisionTime: number;
   status: GameStatus;
   isPaused: boolean;
+  isMultiplayer: boolean;
+  screenShake: number; // intensity
 }
