@@ -43,7 +43,12 @@ export class GameEngine {
       lastAiDecisionTime: Date.now(),
       status: 'playing',
       isPaused: false,
+      isMultiplayer: false,
     };
+  }
+
+  public setMultiplayer(enabled: boolean) {
+    this.state.isMultiplayer = enabled;
   }
 
   public reset() {
@@ -71,6 +76,7 @@ export class GameEngine {
       lastAiDecisionTime: Date.now(),
       status: 'playing',
       isPaused: false,
+      isMultiplayer: this.state.isMultiplayer,
     };
   }
 
@@ -110,20 +116,46 @@ export class GameEngine {
     this.state.troops.push(newTroop);
   }
 
+  public spawnRemoteTroop(team: Team) {
+    const id = Math.random().toString(36).substr(2, 9);
+    const castle = team === 'player' ? this.state.playerCastle : this.state.opponentCastle;
+    
+    const newTroop: Troop = {
+      id,
+      x: team === 'player' ? castle.x + castle.width : castle.x,
+      y: CANVAS_HEIGHT - 60, // Ground level
+      speed: team === 'player' ? TROOP_STATS.BASIC.speed : -TROOP_STATS.BASIC.speed,
+      team,
+      size: TROOP_STATS.BASIC.size,
+      color: team === 'player' ? '#000' : '#FFF',
+      health: TROOP_STATS.BASIC.health,
+      maxHealth: TROOP_STATS.BASIC.health,
+      attackDamage: TROOP_STATS.BASIC.attackDamage,
+      attackRange: TROOP_STATS.BASIC.attackRange,
+      attackCooldown: TROOP_STATS.BASIC.attackCooldown,
+      lastAttackTime: 0,
+      isAttacking: false,
+      isTakingDamage: false,
+      damageFlashTimer: 0,
+    };
+
+    this.state.troops.push(newTroop);
+  }
+
   public update() {
     if (this.state.isPaused) return;
 
     const now = Date.now();
 
-    // Update Economy (10 gold per second)
+    // 1. Update Economy (10 gold per second)
     if (now - this.state.lastIncomeTime >= 1000) {
       this.state.gold += 10;
       this.state.opponentGold += 10;
       this.state.lastIncomeTime = now;
     }
 
-    // 2. Opponent AI Logic
-    if (this.state.status === 'playing' && now - this.state.lastAiDecisionTime >= 1000) {
+    // 2. Opponent AI Logic (Disabled in Multiplayer)
+    if (!this.state.isMultiplayer && this.state.status === 'playing' && now - this.state.lastAiDecisionTime >= 1000) {
       if (this.state.opponentGold >= TROOP_STATS.BASIC.cost) {
         // AI decides to spawn (random chance for human-like pacing)
         if (Math.random() < 0.4) {
