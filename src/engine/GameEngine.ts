@@ -170,6 +170,15 @@ export class GameEngine {
     this.state.troops = this.state.troops.filter(
       (troop) => troop.x > -100 && troop.x < CANVAS_WIDTH + 100
     );
+
+    // 5. Win/Loss Conditions
+    if (this.state.opponentCastle.health <= 0) {
+      this.state.status = 'victory';
+      this.state.isPaused = true;
+    } else if (this.state.playerCastle.health <= 0) {
+      this.state.status = 'defeat';
+      this.state.isPaused = true;
+    }
   }
 
   private dealDamage(attacker: Troop, defender: Troop | Castle) {
