@@ -46,6 +46,34 @@ export class GameEngine {
     };
   }
 
+  public reset() {
+    this.state = {
+      playerCastle: {
+        health: 1000,
+        maxHealth: 1000,
+        x: 50,
+        width: 150,
+        height: 300,
+        team: 'player',
+      },
+      opponentCastle: {
+        health: 1000,
+        maxHealth: 1000,
+        x: CANVAS_WIDTH - 200,
+        width: 150,
+        height: 300,
+        team: 'opponent',
+      },
+      troops: [],
+      gold: 100,
+      opponentGold: 100,
+      lastIncomeTime: Date.now(),
+      lastAiDecisionTime: Date.now(),
+      status: 'playing',
+      isPaused: false,
+    };
+  }
+
   public getState(): GameState {
     return { ...this.state };
   }
