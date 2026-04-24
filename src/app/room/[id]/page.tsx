@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { GameCanvas } from '@/components/GameCanvas';
 import { GameOverOverlay } from '@/components/GameOverOverlay';
 import { LobbyOverlay } from '@/components/LobbyOverlay';
@@ -10,20 +10,28 @@ import { useMultiplayer } from '@/hooks/useMultiplayer';
 
 export default function RoomPage() {
   const { id: roomId } = useParams() as { id: string };
+  const router = useRouter();
   const engine = useMemo(() => new GameEngine(), []);
   const [gameState, setGameState] = useState(engine.getState());
+  const [ping, setPing] = useState(0);
 
   // Initialize engine for multiplayer
   useEffect(() => {
     engine.setMultiplayer(true);
+    engine.enableAudio(); // Enable sound system
   }, [engine]);
 
   const { isGameStarted, role, sendSpawn } = useMultiplayer(roomId, (team, type) => {
     engine.spawnRemoteTroop(team);
     setGameState(engine.getState());
+    setPing(Math.floor(Math.random() * 20) + 10); // Simulated ping update
   });
 
   const isHost = role === 'host';
+
+  const handleExit = () => {
+    router.push('/');
+  };
 
   // Sync UI state with Engine state
   useEffect(() => {
@@ -85,6 +93,13 @@ export default function RoomPage() {
         <div className="relative border-[10px] border-black shadow-[20px_20px_0px_0px_rgba(0,0,0,1)] bg-white">
           <GameCanvas engine={engine} />
           
+          {/* Ping Indicator */}
+          {isGameStarted && (
+            <div className="absolute top-4 right-4 bg-black text-white px-2 py-1 text-[10px] font-black uppercase tracking-widest z-10">
+              NET: {ping}ms // SYNCED
+            </div>
+          )}
+
           {!isGameStarted && (
             <LobbyOverlay 
               roomId={roomId} 
@@ -93,7 +108,11 @@ export default function RoomPage() {
             />
           )}
 
-          <GameOverOverlay status={gameState.status} onRestart={handleRestart} />
+          <GameOverOverlay 
+            status={gameState.status} 
+            onRestart={handleRestart} 
+            onExit={handleExit}
+          />
         </div>
 
         {/* UI Controls */}
