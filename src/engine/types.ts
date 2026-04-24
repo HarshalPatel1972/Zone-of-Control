@@ -17,11 +17,23 @@ export interface Troop {
   team: Team;
   size: number;
   color: string;
+  // Combat stats
+  health: number;
+  maxHealth: number;
+  attackDamage: number;
+  attackRange: number;
+  attackCooldown: number; // in milliseconds
+  lastAttackTime: number; // timestamp
+  isAttacking: boolean;
+  isTakingDamage: boolean;
+  damageFlashTimer: number; // frames to flash
 }
 
 export interface GameState {
   playerCastle: Castle;
   opponentCastle: Castle;
   troops: Troop[];
+  gold: number;
+  lastIncomeTime: number;
   isPaused: boolean;
 }
