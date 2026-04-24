@@ -1,4 +1,4 @@
-import { GameState, Troop, Castle, Team } from './types';
+import { GameState, Troop, Castle, Team, Particle } from './types';
 
 export const CANVAS_WIDTH = 1600;
 export const CANVAS_HEIGHT = 900;
@@ -17,9 +17,14 @@ export const TROOP_STATS = {
 
 export class GameEngine {
   private state: GameState;
+  private audioEnabled: boolean = false;
 
   constructor() {
-    this.state = {
+    this.state = this.getInitialState();
+  }
+
+  private getInitialState(): GameState {
+    return {
       playerCastle: {
         health: 1000,
         maxHealth: 1000,
@@ -37,6 +42,7 @@ export class GameEngine {
         team: 'opponent',
       },
       troops: [],
+      particles: [],
       gold: 100,
       opponentGold: 100,
       lastIncomeTime: Date.now(),
@@ -44,40 +50,18 @@ export class GameEngine {
       status: 'playing',
       isPaused: false,
       isMultiplayer: false,
+      screenShake: 0,
     };
+  }
+
+  public reset() {
+    const isMulti = this.state.isMultiplayer;
+    this.state = this.getInitialState();
+    this.state.isMultiplayer = isMulti;
   }
 
   public setMultiplayer(enabled: boolean) {
     this.state.isMultiplayer = enabled;
-  }
-
-  public reset() {
-    this.state = {
-      playerCastle: {
-        health: 1000,
-        maxHealth: 1000,
-        x: 50,
-        width: 150,
-        height: 300,
-        team: 'player',
-      },
-      opponentCastle: {
-        health: 1000,
-        maxHealth: 1000,
-        x: CANVAS_WIDTH - 200,
-        width: 150,
-        height: 300,
-        team: 'opponent',
-      },
-      troops: [],
-      gold: 100,
-      opponentGold: 100,
-      lastIncomeTime: Date.now(),
-      lastAiDecisionTime: Date.now(),
-      status: 'playing',
-      isPaused: false,
-      isMultiplayer: this.state.isMultiplayer,
-    };
   }
 
   public getState(): GameState {
@@ -89,41 +73,24 @@ export class GameEngine {
 
     if (team === 'player') {
       this.state.gold -= TROOP_STATS.BASIC.cost;
+      this.playSound('spawn');
     }
 
-    const id = Math.random().toString(36).substr(2, 9);
-    const castle = team === 'player' ? this.state.playerCastle : this.state.opponentCastle;
-    
-    const newTroop: Troop = {
-      id,
-      x: team === 'player' ? castle.x + castle.width : castle.x,
-      y: CANVAS_HEIGHT - 60, // Ground level
-      speed: team === 'player' ? TROOP_STATS.BASIC.speed : -TROOP_STATS.BASIC.speed,
-      team,
-      size: TROOP_STATS.BASIC.size,
-      color: team === 'player' ? '#000' : '#FFF',
-      health: TROOP_STATS.BASIC.health,
-      maxHealth: TROOP_STATS.BASIC.health,
-      attackDamage: TROOP_STATS.BASIC.attackDamage,
-      attackRange: TROOP_STATS.BASIC.attackRange,
-      attackCooldown: TROOP_STATS.BASIC.attackCooldown,
-      lastAttackTime: 0,
-      isAttacking: false,
-      isTakingDamage: false,
-      damageFlashTimer: 0,
-    };
-
-    this.state.troops.push(newTroop);
+    this.createTroop(team);
   }
 
   public spawnRemoteTroop(team: Team) {
+    this.createTroop(team);
+  }
+
+  private createTroop(team: Team) {
     const id = Math.random().toString(36).substr(2, 9);
     const castle = team === 'player' ? this.state.playerCastle : this.state.opponentCastle;
     
     const newTroop: Troop = {
       id,
       x: team === 'player' ? castle.x + castle.width : castle.x,
-      y: CANVAS_HEIGHT - 60, // Ground level
+      y: CANVAS_HEIGHT - 60,
       speed: team === 'player' ? TROOP_STATS.BASIC.speed : -TROOP_STATS.BASIC.speed,
       team,
       size: TROOP_STATS.BASIC.size,
@@ -147,36 +114,47 @@ export class GameEngine {
 
     const now = Date.now();
 
-    // 1. Update Economy (10 gold per second)
+    // 1. Update Economy
     if (now - this.state.lastIncomeTime >= 1000) {
       this.state.gold += 10;
       this.state.opponentGold += 10;
       this.state.lastIncomeTime = now;
     }
 
-    // 2. Opponent AI Logic (Disabled in Multiplayer)
+    // 2. Opponent AI
     if (!this.state.isMultiplayer && this.state.status === 'playing' && now - this.state.lastAiDecisionTime >= 1000) {
       if (this.state.opponentGold >= TROOP_STATS.BASIC.cost) {
-        // AI decides to spawn (random chance for human-like pacing)
         if (Math.random() < 0.4) {
           this.state.opponentGold -= TROOP_STATS.BASIC.cost;
-          this.spawnTroop('opponent');
+          this.createTroop('opponent');
         }
       }
       this.state.lastAiDecisionTime = now;
     }
 
-    // 2. Update Troops
+    // 3. Update Screen Shake
+    if (this.state.screenShake > 0) {
+      this.state.screenShake *= 0.9;
+      if (this.state.screenShake < 0.1) this.state.screenShake = 0;
+    }
+
+    // 4. Update Particles
+    this.state.particles.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life -= 0.02;
+    });
+    this.state.particles = this.state.particles.filter(p => p.life > 0);
+
+    // 5. Update Troops
     this.state.troops.forEach((troop) => {
       let isBlocked = false;
       let target: Troop | Castle | null = null;
 
-      // Reset states
       troop.isAttacking = false;
       if (troop.damageFlashTimer > 0) troop.damageFlashTimer--;
       else troop.isTakingDamage = false;
 
-      // Check collision with enemy castle
       const enemyCastle = troop.team === 'player' ? this.state.opponentCastle : this.state.playerCastle;
       const distToCastle = troop.team === 'player' 
         ? enemyCastle.x - troop.x 
@@ -187,22 +165,12 @@ export class GameEngine {
         target = enemyCastle;
       }
 
-      // Check collision with other troops (1D)
       this.state.troops.forEach((other) => {
         if (troop.id === other.id) return;
-
-        const dist = troop.team === 'player' 
-          ? other.x - troop.x 
-          : troop.x - other.x;
-
-        // Friendly collision (stacking prevention)
+        const dist = troop.team === 'player' ? other.x - troop.x : troop.x - other.x;
         if (troop.team === other.team) {
-          if (dist > 0 && dist < troop.size + 10) {
-            isBlocked = true;
-          }
-        } 
-        // Enemy collision
-        else {
+          if (dist > 0 && dist < troop.size + 10) isBlocked = true;
+        } else {
           if (dist > 0 && dist < troop.attackRange) {
             isBlocked = true;
             target = other;
@@ -210,34 +178,35 @@ export class GameEngine {
         }
       });
 
-      // Movement or Combat
       if (!isBlocked) {
         troop.x += troop.speed;
       } else if (target) {
-        // Combat logic
         if (now - troop.lastAttackTime >= troop.attackCooldown) {
           this.dealDamage(troop, target);
           troop.lastAttackTime = now;
           troop.isAttacking = true;
+          this.playSound('clash');
         }
       }
     });
 
-    // 3. Remove dead troops
-    this.state.troops = this.state.troops.filter((t) => t.health > 0);
+    // 6. Cleanup dead troops & Spawn particles
+    const deadTroops = this.state.troops.filter(t => t.health <= 0);
+    deadTroops.forEach(t => this.spawnDeathParticles(t));
+    this.state.troops = this.state.troops.filter(t => t.health > 0);
 
-    // 4. Bounds check (cleanup)
-    this.state.troops = this.state.troops.filter(
-      (troop) => troop.x > -100 && troop.x < CANVAS_WIDTH + 100
-    );
+    // 7. Bounds check
+    this.state.troops = this.state.troops.filter(t => t.x > -100 && t.x < CANVAS_WIDTH + 100);
 
-    // 5. Win/Loss Conditions
+    // 8. Win/Loss
     if (this.state.opponentCastle.health <= 0) {
       this.state.status = 'victory';
       this.state.isPaused = true;
+      this.playSound('game_over');
     } else if (this.state.playerCastle.health <= 0) {
       this.state.status = 'defeat';
       this.state.isPaused = true;
+      this.playSound('game_over');
     }
   }
 
@@ -246,14 +215,50 @@ export class GameEngine {
     if ('isTakingDamage' in defender) {
       (defender as Troop).isTakingDamage = true;
       (defender as Troop).damageFlashTimer = 5;
+    } else {
+      // It's a castle
+      this.state.screenShake = 15;
     }
   }
 
-  public render(ctx: CanvasRenderingContext2D) {
-    // Clear canvas
-    ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  private spawnDeathParticles(troop: Troop) {
+    for (let i = 0; i < 5; i++) {
+      this.state.particles.push({
+        id: Math.random().toString(36).substr(2, 9),
+        x: troop.x,
+        y: troop.y - troop.size / 2,
+        vx: (Math.random() - 0.5) * 10,
+        vy: (Math.random() - 0.8) * 10,
+        size: Math.random() * 10 + 5,
+        color: troop.color,
+        life: 1.0
+      });
+    }
+  }
 
-    // Draw background (simple ground line)
+  private playSound(type: 'spawn' | 'clash' | 'game_over') {
+    if (!this.audioEnabled) return;
+    console.log(`[AUDIO] Playing sound: ${type}`);
+    // Structural logic for dropping in .wav files later
+  }
+
+  public enableAudio() {
+    this.audioEnabled = true;
+  }
+
+  public render(ctx: CanvasRenderingContext2D) {
+    ctx.save();
+    
+    // Apply Screen Shake
+    if (this.state.screenShake > 0) {
+      const dx = (Math.random() - 0.5) * this.state.screenShake;
+      const dy = (Math.random() - 0.5) * this.state.screenShake;
+      ctx.translate(dx, dy);
+    }
+
+    ctx.clearRect(-100, -100, CANVAS_WIDTH + 200, CANVAS_HEIGHT + 200);
+
+    // Draw Ground
     ctx.strokeStyle = '#000';
     ctx.lineWidth = 4;
     ctx.beginPath();
@@ -261,44 +266,37 @@ export class GameEngine {
     ctx.lineTo(CANVAS_WIDTH, CANVAS_HEIGHT - 60);
     ctx.stroke();
 
-    // Draw Castles (Neo-Brutalist: sharp, thick borders)
     this.drawCastle(ctx, this.state.playerCastle);
     this.drawCastle(ctx, this.state.opponentCastle);
 
-    // Draw Troops
-    this.state.troops.forEach((troop) => {
-      this.drawTroop(ctx, troop);
-    });
+    this.state.troops.forEach(t => this.drawTroop(ctx, t));
+    this.state.particles.forEach(p => this.drawParticle(ctx, p));
+
+    ctx.restore();
   }
 
   private drawCastle(ctx: CanvasRenderingContext2D, castle: Castle) {
     const y = CANVAS_HEIGHT - 60 - castle.height;
-    
-    // Castle Body
     ctx.fillStyle = castle.team === 'player' ? '#FFF' : '#222';
     ctx.strokeStyle = '#000';
     ctx.lineWidth = 8;
     ctx.fillRect(castle.x, y, castle.width, castle.height);
     ctx.strokeRect(castle.x, y, castle.width, castle.height);
 
-    // Large Stylized Health Bar
     const barWidth = castle.width * 1.5;
     const barHeight = 30;
     const barX = castle.x - (barWidth - castle.width) / 2;
     const barY = y - 60;
 
-    // Bar Background
     ctx.fillStyle = '#FFF';
     ctx.fillRect(barX, barY, barWidth, barHeight);
     ctx.strokeRect(barX, barY, barWidth, barHeight);
 
-    // Health Fill
     ctx.fillStyle = castle.team === 'player' ? '#000' : '#555';
     const healthPercent = Math.max(0, castle.health / castle.maxHealth);
     ctx.fillRect(barX, barY, barWidth * healthPercent, barHeight);
 
-    // Health Text
-    ctx.fillStyle = castle.team === 'player' ? '#FFF' : '#FFF';
+    ctx.fillStyle = '#FFF';
     ctx.font = 'bold 16px monospace';
     ctx.textAlign = 'center';
     ctx.fillText(`${Math.ceil(castle.health)}HP`, barX + barWidth / 2, barY + 20);
@@ -306,22 +304,15 @@ export class GameEngine {
 
   private drawTroop(ctx: CanvasRenderingContext2D, troop: Troop) {
     const drawY = troop.y - troop.size;
-    
-    // Damage Flash / Normal Color
-    if (troop.isTakingDamage) {
-      ctx.fillStyle = '#F00'; // Stark Red on damage
-    } else if (troop.isAttacking) {
-      ctx.fillStyle = '#FFF'; // Stark White on attack
-    } else {
-      ctx.fillStyle = troop.team === 'player' ? '#000' : '#555';
-    }
+    if (troop.isTakingDamage) ctx.fillStyle = '#F00';
+    else if (troop.isAttacking) ctx.fillStyle = '#FFF';
+    else ctx.fillStyle = troop.team === 'player' ? '#000' : '#555';
 
     ctx.strokeStyle = '#000';
     ctx.lineWidth = 4;
     ctx.fillRect(troop.x - troop.size / 2, drawY, troop.size, troop.size);
     ctx.strokeRect(troop.x - troop.size / 2, drawY, troop.size, troop.size);
 
-    // Troop Health Bar
     const barWidth = troop.size * 1.2;
     const barHeight = 8;
     const barX = troop.x - barWidth / 2;
@@ -334,5 +325,15 @@ export class GameEngine {
     ctx.fillStyle = troop.team === 'player' ? '#000' : '#555';
     const healthPercent = Math.max(0, troop.health / troop.maxHealth);
     ctx.fillRect(barX, barY, barWidth * healthPercent, barHeight);
+  }
+
+  private drawParticle(ctx: CanvasRenderingContext2D, p: Particle) {
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = p.color;
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 2;
+    ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+    ctx.strokeRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+    ctx.globalAlpha = 1.0;
   }
 }
