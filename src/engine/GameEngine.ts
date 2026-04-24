@@ -258,9 +258,25 @@ export class GameEngine {
 
     ctx.clearRect(-100, -100, CANVAS_WIDTH + 200, CANVAS_HEIGHT + 200);
 
+    // Draw Background Grid
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+    ctx.lineWidth = 1;
+    for (let x = 0; x < CANVAS_WIDTH; x += 100) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, CANVAS_HEIGHT);
+      ctx.stroke();
+    }
+    for (let y = 0; y < CANVAS_HEIGHT; y += 100) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(CANVAS_WIDTH, y);
+      ctx.stroke();
+    }
+
     // Draw Ground
     ctx.strokeStyle = '#000';
-    ctx.lineWidth = 4;
+    ctx.lineWidth = 6;
     ctx.beginPath();
     ctx.moveTo(0, CANVAS_HEIGHT - 60);
     ctx.lineTo(CANVAS_WIDTH, CANVAS_HEIGHT - 60);
@@ -277,54 +293,54 @@ export class GameEngine {
 
   private drawCastle(ctx: CanvasRenderingContext2D, castle: Castle) {
     const y = CANVAS_HEIGHT - 60 - castle.height;
-    ctx.fillStyle = castle.team === 'player' ? '#FFF' : '#222';
+    
+    // Castle Body - Brutalist Concrete Look
+    ctx.fillStyle = castle.team === 'player' ? '#222' : '#111';
     ctx.strokeStyle = '#000';
     ctx.lineWidth = 8;
     ctx.fillRect(castle.x, y, castle.width, castle.height);
     ctx.strokeRect(castle.x, y, castle.width, castle.height);
 
+    // Dynamic Health Bar
     const barWidth = castle.width * 1.5;
-    const barHeight = 30;
+    const barHeight = 24;
     const barX = castle.x - (barWidth - castle.width) / 2;
-    const barY = y - 60;
+    const barY = y - 50;
 
-    ctx.fillStyle = '#FFF';
+    ctx.fillStyle = '#000';
     ctx.fillRect(barX, barY, barWidth, barHeight);
     ctx.strokeRect(barX, barY, barWidth, barHeight);
 
-    ctx.fillStyle = castle.team === 'player' ? '#000' : '#555';
     const healthPercent = Math.max(0, castle.health / castle.maxHealth);
-    ctx.fillRect(barX, barY, barWidth * healthPercent, barHeight);
+    ctx.fillStyle = castle.team === 'player' ? '#CCFF00' : '#FF3E00';
+    ctx.fillRect(barX + 4, barY + 4, (barWidth - 8) * healthPercent, barHeight - 8);
 
+    // Castle Team Indicator
     ctx.fillStyle = '#FFF';
-    ctx.font = 'bold 16px monospace';
+    ctx.font = '900 12px "Outfit"';
     ctx.textAlign = 'center';
-    ctx.fillText(`${Math.ceil(castle.health)}HP`, barX + barWidth / 2, barY + 20);
+    ctx.fillText(castle.team.toUpperCase(), castle.x + castle.width / 2, y + 30);
   }
 
   private drawTroop(ctx: CanvasRenderingContext2D, troop: Troop) {
     const drawY = troop.y - troop.size;
-    if (troop.isTakingDamage) ctx.fillStyle = '#F00';
-    else if (troop.isAttacking) ctx.fillStyle = '#FFF';
-    else ctx.fillStyle = troop.team === 'player' ? '#000' : '#555';
+    
+    // Color states
+    if (troop.isTakingDamage) ctx.fillStyle = '#FF0000';
+    else if (troop.isAttacking) ctx.fillStyle = '#FFFFFF';
+    else ctx.fillStyle = troop.team === 'player' ? '#CCFF00' : '#FF3E00';
 
     ctx.strokeStyle = '#000';
     ctx.lineWidth = 4;
     ctx.fillRect(troop.x - troop.size / 2, drawY, troop.size, troop.size);
     ctx.strokeRect(troop.x - troop.size / 2, drawY, troop.size, troop.size);
 
-    const barWidth = troop.size * 1.2;
-    const barHeight = 8;
-    const barX = troop.x - barWidth / 2;
-    const barY = drawY - 15;
-
-    ctx.fillStyle = '#FFF';
-    ctx.fillRect(barX, barY, barWidth, barHeight);
-    ctx.strokeRect(barX, barY, barWidth, barHeight);
-
-    ctx.fillStyle = troop.team === 'player' ? '#000' : '#555';
+    // Health Line (Minimalist)
     const healthPercent = Math.max(0, troop.health / troop.maxHealth);
-    ctx.fillRect(barX, barY, barWidth * healthPercent, barHeight);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(troop.x - troop.size / 2, drawY - 10, troop.size, 4);
+    ctx.fillStyle = '#FFF';
+    ctx.fillRect(troop.x - troop.size / 2, drawY - 10, troop.size * healthPercent, 4);
   }
 
   private drawParticle(ctx: CanvasRenderingContext2D, p: Particle) {
