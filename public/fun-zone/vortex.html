@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stellar Vortex Engine</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #050505;
+            --accent-primary: #00f2ff;
+            --accent-secondary: #7000ff;
+            --text: #ffffff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            cursor: none;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        canvas {
+            display: block;
+            filter: blur(0.5px) contrast(1.1);
+        }
+
+        .ui-overlay {
+            position: fixed;
+            top: 40px;
+            left: 40px;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        h1 {
+            font-size: 14px;
+            font-weight: 300;
+            letter-spacing: 0.4em;
+            text-transform: uppercase;
+            opacity: 0.6;
+            margin-bottom: 8px;
+        }
+
+        .status {
+            font-size: 10px;
+            letter-spacing: 0.1em;
+            opacity: 0.4;
+        }
+
+        /* Custom Cursor */
+        .cursor-inner {
+            width: 6px;
+            height: 6px;
+            background: white;
+            position: fixed;
+            border-radius: 50%;
+            z-index: 1000;
+            pointer-events: none;
+            mix-blend-mode: difference;
+        }
+
+        .cursor-outer {
+            width: 40px;
+            height: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: fixed;
+            border-radius: 50%;
+            z-index: 999;
+            pointer-events: none;
+            transition: transform 0.15s ease-out, border 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="ui-overlay">
+        <h1>Stellar Vortex</h1>
+        <div class="status">KINETIC FLUID SIMULATION V1.0</div>
+    </div>
+
+    <canvas id="canvas"></canvas>
+    
+    <div class="cursor-inner" id="cursor-inner"></div>
+    <div class="cursor-outer" id="cursor-outer"></div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const cursorInner = document.getElementById('cursor-inner');
+        const cursorOuter = document.getElementById('cursor-outer');
+
+        let width, height;
+        let particles = [];
+        const particleCount = 2000;
+        
+        let mouse = {
+            x: -1000,
+            y: -1000,
+            active: false
+        };
+
+        // Resize handler
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            initParticles();
+        }
+
+        class Particle {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.vx = (Math.random() - 0.5) * 0.5;
+                this.vy = (Math.random() - 0.5) * 0.5;
+                this.size = Math.random() * 1.5 + 0.5;
+                this.color = `hsla(${Math.random() * 60 + 220}, 80%, 60%, ${Math.random() * 0.5 + 0.2})`;
+                this.history = [];
+                this.maxHistory = Math.floor(Math.random() * 15 + 5);
+            }
+
+            update() {
+                this.history.push({x: this.x, y: this.y});
+                if (this.history.length > this.maxHistory) this.history.shift();
+
+                // Mouse interaction
+                if (mouse.active) {
+                    const dx = mouse.x - this.x;
+                    const dy = mouse.y - this.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    const force = Math.max(0, (400 - distance) / 400);
+                    
+                    // Vortex logic: pull towards mouse + tangential move
+                    const angle = Math.atan2(dy, dx);
+                    const pullX = Math.cos(angle) * force * 0.5;
+                    const pullY = Math.sin(angle) * force * 0.5;
+                    
+                    // Tangential force (the swirl)
+                    const swirlX = Math.cos(angle + Math.PI / 2) * force * 2;
+                    const swirlY = Math.sin(angle + Math.PI / 2) * force * 2;
+
+                    this.vx += pullX + swirlX;
+                    this.vy += pullY + swirlY;
+                }
+
+                // Friction
+                this.vx *= 0.95;
+                this.vy *= 0.95;
+
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Wrap around edges
+                if (this.x < 0) this.x = width;
+                if (this.x > width) this.x = 0;
+                if (this.y < 0) this.y = height;
+                if (this.y > height) this.y = 0;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = this.size;
+                ctx.lineCap = 'round';
+                
+                if (this.history.length > 0) {
+                    ctx.moveTo(this.history[0].x, this.history[0].y);
+                    for (let point of this.history) {
+                        ctx.lineTo(point.x, point.y);
+                    }
+                    ctx.stroke();
+                }
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            for (let i = 0; i < particleCount; i++) {
+                particles.push(new Particle());
+            }
+        }
+
+        function animate() {
+            // Semi-transparent clear for subtle motion blur
+            ctx.fillStyle = 'rgba(5, 5, 5, 0.15)';
+            ctx.fillRect(0, 0, width, height);
+
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        // Mouse Events
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+            mouse.active = true;
+
+            cursorInner.style.left = e.clientX + 'px';
+            cursorInner.style.top = e.clientY + 'px';
+            
+            cursorOuter.style.left = e.clientX - 20 + 'px';
+            cursorOuter.style.top = e.clientY - 20 + 'px';
+        });
+
+        window.addEventListener('mousedown', () => {
+            cursorOuter.style.transform = 'scale(1.5)';
+            cursorOuter.style.borderColor = 'var(--accent-primary)';
+        });
+
+        window.addEventListener('mouseup', () => {
+            cursorOuter.style.transform = 'scale(1)';
+            cursorOuter.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+        });
+
+        window.addEventListener('resize', resize);
+
+        // Bootstrap
+        resize();
+        animate();
+    </script>
+</body>
+</html>

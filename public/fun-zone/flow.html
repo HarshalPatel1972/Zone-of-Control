@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liquid Resonance | Wave Physics Simulation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #050510;
+            --accent: #00f2ff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            cursor: none;
+        }
+
+        body {
+            background-color: var(--bg);
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            font-family: 'Outfit', sans-serif;
+            color: #fff;
+        }
+
+        canvas {
+            display: block;
+            image-rendering: pixelated; /* Keeps the grid sharp before smoothing */
+        }
+
+        .hud {
+            position: fixed;
+            top: 50px;
+            left: 50px;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .hud h1 {
+            font-size: 20px;
+            letter-spacing: 0.4em;
+            text-transform: uppercase;
+            font-weight: 700;
+            opacity: 0.8;
+        }
+
+        .hud p {
+            font-size: 10px;
+            letter-spacing: 0.2em;
+            opacity: 0.4;
+            margin-top: 4px;
+        }
+
+        /* Cursor */
+        .cursor-outer {
+            width: 40px;
+            height: 40px;
+            border: 1px solid rgba(0, 242, 255, 0.3);
+            position: fixed;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1000;
+            transform: translate(-50%, -50%);
+            transition: width 0.3s, height 0.3s;
+        }
+
+        .cursor-inner {
+            width: 4px;
+            height: 4px;
+            background: #00f2ff;
+            position: fixed;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1001;
+            transform: translate(-50%, -50%);
+        }
+    </style>
+</head>
+<body>
+    <div class="hud">
+        <h1>Liquid.Resonance</h1>
+        <p>2D WAVE EQUATION MATRIX V.4</p>
+    </div>
+
+    <canvas id="stage"></canvas>
+    <div class="cursor-outer" id="cursor-outer"></div>
+    <div class="cursor-inner" id="cursor-inner"></div>
+
+    <script>
+        const canvas = document.getElementById('stage');
+        const ctx = canvas.getContext('2d');
+        const cursorOuter = document.getElementById('cursor-outer');
+        const cursorInner = document.getElementById('cursor-inner');
+
+        // Grid resolution (lower = faster, smoother look with upscaling)
+        const res = 6; 
+        let cols, rows;
+        let buffer1, buffer2;
+        let mouse = { x: 0, y: 0, active: false };
+        const damping = 0.98;
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            cols = Math.floor(canvas.width / res);
+            rows = Math.floor(canvas.height / res);
+            
+            buffer1 = new Float32Array(cols * rows);
+            buffer2 = new Float32Array(cols * rows);
+        }
+
+        function poke(x, y, force) {
+            let c = Math.floor(x / res);
+            let r = Math.floor(y / res);
+            
+            if (c > 0 && c < cols - 1 && r > 0 && r < rows - 1) {
+                // Brush effect
+                for(let i = -2; i <= 2; i++) {
+                    for(let j = -2; j <= 2; j++) {
+                        let idx = (r + j) * cols + (c + i);
+                        buffer1[idx] = force;
+                    }
+                }
+            }
+        }
+
+        function update() {
+            for (let r = 1; r < rows - 1; r++) {
+                for (let c = 1; c < cols - 1; c++) {
+                    let i = r * cols + c;
+                    
+                    // Standard discretized wave equation
+                    buffer2[i] = (
+                        buffer1[i - 1] + 
+                        buffer1[i + 1] + 
+                        buffer1[i - cols] + 
+                        buffer1[i + cols]
+                    ) / 2 - buffer2[i];
+                    
+                    buffer2[i] *= damping;
+                }
+            }
+            
+            // Swap buffers
+            let temp = buffer1;
+            buffer1 = buffer2;
+            buffer2 = temp;
+        }
+
+        function draw() {
+            // Draw to a smaller offscreen buffer for upscaling or just use fillRects
+            // For best performance and "premium" look, let's use fillRect per cell
+            // with a shadow/bloom filter on the canvas.
+            
+            ctx.fillStyle = '#050510';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    let h = buffer1[r * cols + c];
+                    if (h > 0.1 || h < -0.1) {
+                        let colorVal = Math.min(255, Math.abs(h) * 255);
+                        // Gradient from Deep Blue (troughs) to Cyan (crests)
+                        if (h > 0) {
+                            ctx.fillStyle = `rgb(0, ${colorVal}, ${colorVal})`;
+                        } else {
+                            ctx.fillStyle = `rgb(0, 0, ${colorVal / 2})`;
+                        }
+                        ctx.fillRect(c * res, r * res, res, res);
+                    }
+                }
+            }
+        }
+
+        function animate() {
+            if (mouse.active) {
+                poke(mouse.x, mouse.y, 10);
+            }
+            
+            update();
+            draw();
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+            mouse.active = true;
+            
+            cursorOuter.style.left = e.clientX + 'px';
+            cursorOuter.style.top = e.clientY + 'px';
+            cursorInner.style.left = e.clientX + 'px';
+            cursorInner.style.top = e.clientY + 'px';
+        });
+
+        window.addEventListener('mousedown', () => {
+            cursorOuter.style.width = '60px';
+            cursorOuter.style.height = '60px';
+            poke(mouse.x, mouse.y, 200);
+        });
+
+        window.addEventListener('mouseup', () => {
+            cursorOuter.style.width = '40px';
+            cursorOuter.style.height = '40px';
+        });
+
+        window.addEventListener('resize', resize);
+
+        resize();
+        animate();
+    </script>
+</body>
+</html>

@@ -55,6 +55,13 @@ export default function LandingPage() {
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-white/20 blur-xl"></div>
             </button>
 
+            <Link
+              href="/fun-zone"
+              className="block w-full py-4 border-2 border-[var(--gold)] text-[var(--gold)] text-xl font-bold uppercase tracking-widest hover:bg-[var(--gold)] hover:text-[#1a0f00] transition-all text-center"
+            >
+              Explore Fun Zone
+            </Link>
+
             <div className="flex justify-center gap-6 text-sm font-bold uppercase tracking-widest text-[var(--gold)]">
               <span>Online PVP</span>
               <span className="opacity-30">|</span>

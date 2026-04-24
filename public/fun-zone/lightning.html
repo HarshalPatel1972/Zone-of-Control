@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plasma Burn | 10/10 Performance</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #050508;
+            --uv: #7b00ff;
+            --gold: #ffcc00;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            cursor: none;
+        }
+
+        body {
+            background-color: var(--bg);
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            color: #fff;
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        .hud {
+            position: fixed;
+            top: 50px;
+            left: 50px;
+            pointer-events: none;
+            z-index: 10;
+            border-left: 1px solid var(--uv);
+            padding-left: 20px;
+        }
+
+        .hud h1 {
+            font-size: 14px;
+            letter-spacing: 0.8em;
+            text-transform: uppercase;
+            font-weight: 700;
+            background: linear-gradient(90deg, var(--uv), var(--gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 5px var(--uv));
+        }
+
+        .hud p {
+            font-size: 8px;
+            letter-spacing: 0.3em;
+            opacity: 0.4;
+            margin-top: 8px;
+        }
+
+        /* Signal Cursor */
+        .cursor {
+            width: 6px;
+            height: 6px;
+            background: #fff;
+            position: fixed;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1000;
+            box-shadow: 0 0 15px #fff, 0 0 30px var(--uv);
+            transform: translate(-50%, -50%);
+        }
+    </style>
+</head>
+<body>
+    <div class="hud">
+        <h1>Plasma.Burn.v7</h1>
+        <p>MATTER_SUNDER // 60FPS_LOCK</p>
+    </div>
+
+    <canvas id="stage"></canvas>
+    <div class="cursor" id="cursor"></div>
+
+    <script>
+        const canvas = document.getElementById('stage');
+        const ctx = canvas.getContext('2d');
+        const cursor = document.getElementById('cursor');
+
+        let width, height;
+        let mouse = { x: -100, y: -100, px: -100, py: -100 };
+        let particles = [];
+        let bolts = [];
+        let flash = 0;
+
+        const PARTICLE_COUNT = 4000;
+        const GRID_SIZE = 40;
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            initParticles();
+        }
+
+        class Particle {
+            constructor(x, y) {
+                this.x = x; this.y = y;
+                this.ox = x; this.oy = y;
+                this.vx = 0; this.vy = 0;
+                this.ignited = false;
+                this.life = 1.0;
+                this.hue = Math.random() > 0.5 ? 280 : 45; // UV or Gold
+            }
+
+            update() {
+                if (this.ignited) {
+                    this.x += this.vx;
+                    this.y += this.vy;
+                    this.vx *= 0.96;
+                    this.vy *= 0.96;
+                    this.life -= 0.015;
+                    this.vy += 0.05; // Gravity
+                } else {
+                    // Return to origin
+                    this.x += (this.ox - this.x) * 0.05;
+                    this.y += (this.oy - this.y) * 0.05;
+                }
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            for (let i = 0; i < PARTICLE_COUNT; i++) {
+                particles.push(new Particle(Math.random() * width, Math.random() * height));
+            }
+        }
+
+        class Bolt {
+            constructor(x1, y1, x2, y2) {
+                this.life = 1.0;
+                this.segments = [];
+                let dx = x2 - x1, dy = y2 - y1;
+                let dist = Math.sqrt(dx*dx + dy*dy);
+                let count = Math.max(3, Math.floor(dist / 30));
+                let curX = x1, curY = y1;
+
+                for (let i = 1; i <= count; i++) {
+                    let tx = x1 + (dx * (i/count));
+                    let ty = y1 + (dy * (i/count));
+                    let ox = (Math.random() - 0.5) * 40;
+                    let oy = (Math.random() - 0.5) * 40;
+                    if (i === count) { ox = 0; oy = 0; }
+                    
+                    this.segments.push({x1: curX, y1: curY, x2: tx + ox, y2: ty + oy});
+                    this.sunder(tx+ox, ty+oy, 60);
+                    curX = tx + ox;
+                    curY = ty + oy;
+                }
+            }
+
+            sunder(x, y, radius) {
+                particles.forEach(p => {
+                    if (p.ignited) return;
+                    let dx = p.x - x;
+                    let dy = p.y - y;
+                    let distSq = dx*dx + dy*dy;
+                    if (distSq < radius * radius) {
+                        p.ignited = true;
+                        let force = (radius - Math.sqrt(distSq)) / radius;
+                        p.vx = (dx / radius) * 20 * force + (Math.random()-0.5)*10;
+                        p.vy = (dy / radius) * 20 * force + (Math.random()-0.5)*10;
+                    }
+                });
+            }
+
+            draw() {
+                ctx.save();
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = '#fff';
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2 * this.life;
+                ctx.beginPath();
+                this.segments.forEach(s => {
+                    ctx.moveTo(s.x1, s.y1);
+                    ctx.lineTo(s.x2, s.y2);
+                });
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+
+        function animate() {
+            ctx.fillStyle = `rgba(5, 5, 8, ${0.15 + flash * 0.2})`;
+            ctx.fillRect(0, 0, width, height);
+            
+            // Draw Dust (Single Pass)
+            ctx.fillStyle = 'rgba(123, 0, 255, 0.2)';
+            ctx.beginPath();
+            particles.forEach(p => {
+                if (!p.ignited) {
+                    ctx.rect(p.x, p.y, 1, 1);
+                    // Minimal interaction with mouse
+                    let dx = mouse.x - p.x;
+                    let dy = mouse.y - p.y;
+                    if (dx*dx + dy*dy < 2500) {
+                        p.x -= dx * 0.05;
+                        p.y -= dy * 0.05;
+                    }
+                }
+            });
+            ctx.fill();
+
+            // Draw Plasma (Single Pass)
+            particles.forEach(p => {
+                if (p.ignited) {
+                    p.update();
+                    if (p.life <= 0) {
+                        p.ignited = false;
+                        p.life = 1.0;
+                    } else {
+                        ctx.fillStyle = `hsla(${p.hue}, 100%, 60%, ${p.life})`;
+                        ctx.fillRect(p.x, p.y, 2, 2);
+                    }
+                }
+            });
+
+            // Bolts
+            bolts = bolts.filter(b => {
+                b.life -= 0.1;
+                b.draw();
+                return b.life > 0;
+            });
+
+            flash *= 0.8;
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX; mouse.y = e.clientY;
+            cursor.style.left = e.clientX + 'px';
+            cursor.style.top = e.clientY + 'px';
+            
+            let dist = Math.sqrt((mouse.x-mouse.px)**2 + (mouse.y-mouse.py)**2);
+            if (dist > 15) {
+                bolts.push(new Bolt(mouse.px, mouse.py, mouse.x, mouse.y));
+                mouse.px = mouse.x; mouse.py = mouse.y;
+            }
+        });
+
+        window.addEventListener('mousedown', () => {
+            flash = 1.0;
+            // Explosion strike
+            for(let i=0; i<8; i++) {
+                let ang = (i/8) * Math.PI * 2;
+                bolts.push(new Bolt(mouse.x, mouse.y, mouse.x + Math.cos(ang)*300, mouse.y + Math.sin(ang)*300));
+            }
+        });
+
+        window.addEventListener('resize', resize);
+        resize();
+        animate();
+    </script>
+</body>
+</html>

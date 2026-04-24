@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interstellar Silk Engine</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #020205;
+            --accent: #ff0077;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            cursor: none;
+        }
+
+        body {
+            background-color: var(--bg);
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        .label {
+            position: fixed;
+            bottom: 40px;
+            right: 40px;
+            color: rgba(255, 255, 255, 0.4);
+            text-align: right;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .label h2 {
+            font-weight: 600;
+            font-size: 18px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .label p {
+            font-size: 10px;
+            letter-spacing: 0.1em;
+            opacity: 0.6;
+        }
+
+        /* Premium Cursor */
+        .cursor {
+            width: 20px;
+            height: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            position: fixed;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 100;
+            transform: translate(-50%, -50%);
+            transition: width 0.3s, height 0.3s, background 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div class="label">
+        <h2>Interstellar Silk</h2>
+        <p>REACTIVE ELASTIC MANIFOLD</p>
+    </div>
+
+    <canvas id="canvas"></canvas>
+    <div class="cursor" id="cursor"></div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const cursor = document.getElementById('cursor');
+
+        let width, height;
+        let mouse = { x: -100, y: -100 };
+        let points = [];
+        const numStrings = 45;
+        const stringLength = 20; // Number of segments
+        const segmentDist = 15;
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            init();
+        }
+
+        class StringInstance {
+            constructor(id) {
+                this.id = id;
+                this.segments = [];
+                // Distribute starting positions
+                const startX = Math.random() * width;
+                const startY = Math.random() * height;
+                
+                for (let i = 0; i < stringLength; i++) {
+                    this.segments.push({
+                        x: startX,
+                        y: startY,
+                        vx: 0,
+                        vy: 0
+                    });
+                }
+                
+                // Unique color for each string
+                this.colorHue = (id * (360 / numStrings)) % 360;
+                this.speedFactor = 0.05 + (Math.random() * 0.1);
+            }
+
+            update() {
+                // Head follows mouse
+                let head = this.segments[0];
+                head.x += (mouse.x - head.x) * this.speedFactor;
+                head.y += (mouse.y - head.y) * this.speedFactor;
+
+                // Rest of segments follow the previous one
+                for (let i = 1; i < stringLength; i++) {
+                    let seg = this.segments[i];
+                    let prev = this.segments[i - 1];
+
+                    let dx = prev.x - seg.x;
+                    let dy = prev.y - seg.y;
+                    let angle = Math.atan2(dy, dx);
+                    
+                    let targetX = prev.x - Math.cos(angle) * segmentDist;
+                    let targetY = prev.y - Math.sin(angle) * segmentDist;
+
+                    seg.vx += (targetX - seg.x) * 0.4;
+                    seg.vy += (targetY - seg.y) * 0.4;
+                    
+                    // Friction/Drag
+                    seg.vx *= 0.5;
+                    seg.vy *= 0.5;
+
+                    seg.x += seg.vx;
+                    seg.y += seg.vy;
+                }
+            }
+
+            draw() {
+                ctx.beginPath();
+                const grade = ctx.createLinearGradient(
+                    this.segments[0].x, this.segments[0].y,
+                    this.segments[stringLength-1].x, this.segments[stringLength-1].y
+                );
+                grade.addColorStop(0, `hsla(${this.colorHue}, 100%, 60%, 0.8)`);
+                grade.addColorStop(1, `hsla(${(this.colorHue + 60) % 360}, 100%, 40%, 0)`);
+
+                ctx.strokeStyle = grade;
+                ctx.lineWidth = 2;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+
+                ctx.moveTo(this.segments[0].x, this.segments[0].y);
+                for (let i = 1; i < stringLength; i++) {
+                    // Quadratic curve for smoothness
+                    const xc = (this.segments[i].x + this.segments[i-1].x) / 2;
+                    const yc = (this.segments[i].y + this.segments[i-1].y) / 2;
+                    ctx.quadraticCurveTo(this.segments[i-1].x, this.segments[i-1].y, xc, yc);
+                }
+                ctx.stroke();
+            }
+        }
+
+        let strings = [];
+        function init() {
+            strings = [];
+            for (let i = 0; i < numStrings; i++) {
+                strings.push(new StringInstance(i));
+            }
+        }
+
+        function animate() {
+            // Draw background with slight opacity for trails
+            ctx.fillStyle = 'rgba(2, 2, 5, 0.2)';
+            ctx.fillRect(0, 0, width, height);
+
+            strings.forEach(s => {
+                s.update();
+                s.draw();
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+            
+            cursor.style.left = e.clientX + 'px';
+            cursor.style.top = e.clientY + 'px';
+        });
+
+        window.addEventListener('mousedown', () => {
+            cursor.style.width = '40px';
+            cursor.style.height = '40px';
+            cursor.style.background = 'rgba(255, 255, 255, 0.1)';
+        });
+
+        window.addEventListener('mouseup', () => {
+            cursor.style.width = '20px';
+            cursor.style.height = '20px';
+            cursor.style.background = 'transparent';
+        });
+
+        window.addEventListener('resize', resize);
+
+        resize();
+        animate();
+    </script>
+</body>
+</html>

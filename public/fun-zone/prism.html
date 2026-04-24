@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prism Manifold | Interactive Light Dispersion</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #030305;
+            --font-main: 'Outfit', sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            cursor: none;
+        }
+
+        body {
+            background-color: var(--bg);
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            color: #fff;
+            font-family: var(--font-main);
+        }
+
+        #ui {
+            position: fixed;
+            top: 50px;
+            left: 50px;
+            z-index: 10;
+            pointer-events: none;
+            mix-blend-mode: overlay;
+        }
+
+        #ui h1 {
+            font-weight: 800;
+            font-size: 24px;
+            letter-spacing: 0.5em;
+            text-transform: uppercase;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+
+        #ui p {
+            font-size: 10px;
+            letter-spacing: 0.8em;
+            opacity: 0.4;
+            text-transform: uppercase;
+        }
+
+        canvas {
+            display: block;
+            filter: contrast(1.2) brightness(1.2);
+        }
+
+        /* Custom Cursor */
+        .cursor-ring {
+            width: 40px;
+            height: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            position: fixed;
+            pointer-events: none;
+            z-index: 1000;
+            transform: translate(-50%, -50%);
+            transition: width 0.3s, height 0.3s, border-color 0.3s;
+        }
+
+        .cursor-dot {
+            width: 4px;
+            height: 4px;
+            background: #fff;
+            border-radius: 50%;
+            position: fixed;
+            pointer-events: none;
+            z-index: 1001;
+            transform: translate(-50%, -50%);
+        }
+    </style>
+</head>
+<body>
+    <div id="ui">
+        <h1>Manifold.v2</h1>
+        <p>Refractive Vector Engine</p>
+    </div>
+
+    <canvas id="stage"></canvas>
+    
+    <div class="cursor-ring" id="cursor-ring"></div>
+    <div class="cursor-dot" id="cursor-dot"></div>
+
+    <script>
+        const canvas = document.getElementById('stage');
+        const ctx = canvas.getContext('2d');
+        const cursorRing = document.getElementById('cursor-ring');
+        const cursorDot = document.getElementById('cursor-dot');
+
+        let width, height;
+        let mouse = { x: -100, y: -100, down: false };
+        let shards = [];
+        const count = 15;
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            init();
+        }
+
+        class Shard {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.size = Math.random() * 150 + 50;
+                this.angle = Math.random() * Math.PI * 2;
+                this.rotationSpeed = (Math.random() - 0.5) * 0.01;
+                this.vx = (Math.random() - 0.5) * 1.5;
+                this.vy = (Math.random() - 0.5) * 1.5;
+                this.sides = Math.floor(Math.random() * 3) + 3; // 3 to 5 sides
+                this.points = [];
+                for(let i=0; i<this.sides; i++) {
+                    this.points.push({
+                        r: Math.random() * 0.5 + 0.5,
+                        a: (i / this.sides) * Math.PI * 2
+                    });
+                }
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.angle += this.rotationSpeed;
+
+                // Wrap
+                if (this.x < -this.size) this.x = width + this.size;
+                if (this.x > width + this.size) this.x = -this.size;
+                if (this.y < -this.size) this.y = height + this.size;
+                if (this.y > height + this.size) this.y = -this.size;
+
+                // Mouse influence
+                const dx = mouse.x - this.x;
+                const dy = mouse.y - this.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < 400) {
+                    const power = (400 - dist) / 400;
+                    this.angle += power * 0.05;
+                    this.vx += (dx / dist) * power * 0.2;
+                    this.vy += (dy / dist) * power * 0.2;
+                }
+                
+                // Friction
+                this.vx *= 0.99;
+                this.vy *= 0.99;
+            }
+
+            draw() {
+                // Main Chromatic Dispersion Effect
+                // We draw 3 layers: Cyan, Magenta, Yellow for a "Prism" feel
+                this.drawLayer(this.x, this.y, 'rgba(0, 255, 255, 0.4)', 0, 0);
+                this.drawLayer(this.x + (this.vx * 4), this.y + (this.vy * 4), 'rgba(255, 0, 255, 0.4)', 0.02, 1);
+                this.drawLayer(this.x + (this.vx * 8), this.y + (this.vy * 8), 'rgba(255, 255, 0, 0.4)', 0.04, 2);
+                
+                // Draw connecting structural lines for premium feel
+                this.drawStructure();
+            }
+
+            drawLayer(x, y, color, angleOffset, idx) {
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.rotate(this.angle + angleOffset);
+                ctx.beginPath();
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 1;
+
+                this.points.forEach((p, i) => {
+                    const px = Math.cos(p.a) * this.size * p.r;
+                    const py = Math.sin(p.a) * this.size * p.r;
+                    if (i === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                });
+
+                ctx.closePath();
+                ctx.stroke();
+                
+                // Add a subtle fill for some shards
+                if (idx === 0) {
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
+                    ctx.fill();
+                }
+                ctx.restore();
+            }
+
+            drawStructure() {
+                // Draw thin lines between vertices of the 3 layers
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+                ctx.lineWidth = 0.5;
+                ctx.beginPath();
+                this.points.forEach((p, i) => {
+                    const px = Math.cos(p.a) * this.size * p.r;
+                    const py = Math.sin(p.a) * this.size * p.r;
+                    ctx.moveTo(px, py);
+                    ctx.lineTo(px + this.vx * 8, py + this.vy * 8);
+                });
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+
+        function init() {
+            shards = [];
+            for (let i = 0; i < count; i++) {
+                shards.push(new Shard());
+            }
+        }
+
+        function animate() {
+            // Motion blur trail
+            ctx.fillStyle = 'rgba(3, 3, 5, 0.15)';
+            ctx.fillRect(0, 0, width, height);
+
+            ctx.globalCompositeOperation = 'screen';
+            shards.forEach(s => {
+                s.update();
+                s.draw();
+            });
+
+            // Draw a faint recursive grid for depth
+            drawGrid();
+
+            requestAnimationFrame(animate);
+        }
+
+        function drawGrid() {
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+            ctx.lineWidth = 0.5;
+            const step = 100;
+            
+            // Grid that distorts based on mouse
+            for (let x = 0; x < width; x += step) {
+                ctx.beginPath();
+                for (let y = 0; y < height; y += 20) {
+                    let dx = mouse.x - x;
+                    let dy = mouse.y - y;
+                    let dist = Math.sqrt(dx * dx + dy * dy);
+                    let offset = dist < 200 ? (200 - dist) * 0.1 : 0;
+                    ctx.lineTo(x - (dx / dist) * offset, y - (dy / dist) * offset);
+                }
+                ctx.stroke();
+            }
+        }
+
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+            
+            cursorRing.style.left = e.clientX + 'px';
+            cursorRing.style.top = e.clientY + 'px';
+            cursorDot.style.left = e.clientX + 'px';
+            cursorDot.style.top = e.clientY + 'px';
+        });
+
+        window.addEventListener('mousedown', () => {
+            mouse.down = true;
+            cursorRing.style.width = '60px';
+            cursorRing.style.height = '60px';
+            cursorRing.style.borderColor = 'rgba(255, 255, 255, 0.6)';
+        });
+
+        window.addEventListener('mouseup', () => {
+            mouse.down = false;
+            cursorRing.style.width = '40px';
+            cursorRing.style.height = '40px';
+            cursorRing.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+        });
+
+        window.addEventListener('resize', resize);
+
+        resize();
+        animate();
+    </script>
+</body>
+</html>

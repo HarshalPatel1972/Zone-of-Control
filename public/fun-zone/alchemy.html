@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Grand Alchemist's Laboratory | v2.0</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #000000;
+            --panel-bg: rgba(12, 12, 18, 0.95);
+            --accent: #00f2ff;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            cursor: none;
+        }
+
+        body {
+            background-color: var(--bg);
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            color: #fff;
+            font-family: 'Space Grotesk', sans-serif;
+            user-select: none;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        /* Side Panel */
+        .side-panel {
+            position: fixed;
+            right: 0;
+            top: 0;
+            width: 320px;
+            height: 100vh;
+            background: var(--panel-bg);
+            border-left: 1px solid var(--border);
+            backdrop-filter: blur(20px);
+            z-index: 100;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: -20px 0 50px rgba(0,0,0,0.5);
+        }
+
+        .side-panel h2 {
+            font-size: 14px;
+            letter-spacing: 0.4em;
+            text-transform: uppercase;
+            margin-bottom: 30px;
+            color: var(--accent);
+            opacity: 0.8;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            font-size: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            padding: 6px 12px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            cursor: pointer;
+            opacity: 0.5;
+            transition: all 0.2s;
+        }
+
+        .tab:hover { opacity: 0.8; background: rgba(255,255,255,0.05); }
+        .tab.active { opacity: 1; border-color: var(--accent); color: var(--accent); }
+
+        /* Element Grid */
+        .element-grid {
+            flex-grow: 1;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .element-grid::-webkit-scrollbar { width: 3px; }
+        .element-grid::-webkit-scrollbar-thumb { background: var(--border); }
+
+        .element-btn {
+            aspect-ratio: 1;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: rgba(255,255,255,0.03);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            padding: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .element-btn:hover {
+            transform: translateY(-3px);
+            background: rgba(255,255,255,0.08);
+            border-color: rgba(255,255,255,0.3);
+        }
+
+        .element-btn.active {
+            border-color: var(--accent);
+            box-shadow: 0 0 15px rgba(0, 242, 255, 0.2);
+        }
+
+        .element-btn span {
+            position: absolute;
+            bottom: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 6px;
+            text-transform: uppercase;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .element-btn:hover span { opacity: 0.6; }
+
+        /* HUD */
+        .hud {
+            position: fixed;
+            top: 40px;
+            left: 40px;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .hud h1 {
+            font-size: 16px;
+            letter-spacing: 0.8em;
+            text-transform: uppercase;
+            font-weight: 700;
+            background: linear-gradient(90deg, var(--accent), #fff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hud p {
+            font-size: 8px;
+            letter-spacing: 0.2em;
+            opacity: 0.3;
+            margin-top: 8px;
+        }
+
+        .stats {
+            margin-top: 20px;
+            font-size: 7px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            opacity: 0.4;
+            line-height: 1.8;
+        }
+
+        /* Cursor / Brush */
+        .cursor-ring {
+            width: 30px;
+            height: 30px;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 50%;
+            position: fixed;
+            pointer-events: none;
+            z-index: 1000;
+            transform: translate(-50%, -50%);
+        }
+
+        .cursor-point {
+            width: 4px;
+            height: 4px;
+            background: var(--accent);
+            border-radius: 50%;
+            position: fixed;
+            pointer-events: none;
+            z-index: 1000;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 10px var(--accent);
+        }
+    </style>
+</head>
+<body>
+    <div class="hud">
+        <h1>Grand.Alchemy.LAB</h1>
+        <p>MANIFOLD_STABLE // VERSION_2.0</p>
+        <div class="stats" id="stats">
+            PIXELS: 0 | TEMP: 20°C<br>
+            BRUSH: SAND | SIZE: 10<br>
+            STATUS: READY
+        </div>
+    </div>
+
+    <div class="side-panel">
+        <h2>Laboratory Registry</h2>
+        
+        <div class="tabs" id="categoryTabs">
+            <div class="tab active" data-cat="earth">Earth</div>
+            <div class="tab" data-cat="liquids">Liquids</div>
+            <div class="tab" data-cat="energy">Energy</div>
+            <div class="tab" data-cat="bio">Bio</div>
+            <div class="tab" data-cat="industrial">Tech</div>
+            <div class="tab" data-cat="special">Exotic</div>
+        </div>
+
+        <div class="element-grid" id="elementGrid">
+            <!-- Populated by JS -->
+        </div>
+    </div>
+
+    <canvas id="stage"></canvas>
+
+    <script>
+        const canvas = document.getElementById('stage');
+        const ctx = canvas.getContext('2d', { alpha: false });
+        
+        // Performance Buffers
+        const simCanvas = document.createElement('canvas');
+        const simCtx = simCanvas.getContext('2d', { alpha: false });
+        
+        const elementGrid = document.getElementById('elementGrid');
+        const stats = document.getElementById('stats');
+
+        // Material Constants & Registry
+        const ELEMENTS = {
+            AIR: { id: 0, color: '#000000', phase: 'GAS', density: 0, temp: 20, icon: '◌' },
+            // --- EARTH ---
+            SAND: { id: 1, color: '#ffcc00', phase: 'POWDER', density: 100, cat: 'earth', icon: '▒' },
+            SALT: { id: 2, color: '#ffffff', phase: 'POWDER', density: 95, cat: 'earth', icon: '⊹' },
+            DIRT: { id: 3, color: '#553311', phase: 'POWDER', density: 110, cat: 'earth', icon: '░' },
+            STONE: { id: 4, color: '#888888', phase: 'SOLID', density: 200, cat: 'earth', icon: '█' },
+            CLAY: { id: 5, color: '#884422', phase: 'POWDER', density: 120, cat: 'earth', icon: '▓' },
+            COAL: { id: 6, color: '#222222', phase: 'SOLID', density: 150, flammability: 0.4, cat: 'earth', icon: '⬢' },
+            OBSIDIAN: { id: 7, color: '#110022', phase: 'SOLID', density: 250, cat: 'earth', icon: '✦' },
+            GRAVEL: { id: 8, color: '#666666', phase: 'POWDER', density: 160, cat: 'earth', icon: '⁖' },
+            SNOW: { id: 9, color: '#ccffff', phase: 'POWDER', density: 30, temp: -5, cat: 'earth', icon: '❄' },
+            
+            // --- LIQUIDS ---
+            WATER: { id: 20, color: '#0088ff', phase: 'LIQUID', density: 50, cat: 'liquids', icon: '≈' },
+            OIL: { id: 21, color: '#aa00ff', phase: 'LIQUID', density: 40, flammability: 0.8, cat: 'liquids', icon: '⌇' },
+            ACID: { id: 22, color: '#00ff88', phase: 'LIQUID', density: 60, corrosive: true, cat: 'liquids', icon: '◬' },
+            LAVA: { id: 23, color: '#ff4400', phase: 'LIQUID', density: 180, temp: 1200, cat: 'liquids', icon: '♨' },
+            MERCURY: { id: 24, color: '#cccccc', phase: 'LIQUID', density: 230, cat: 'liquids', icon: '●' },
+            HONEY: { id: 25, color: '#ffaa00', phase: 'LIQUID', density: 70, viscosity: 0.8, cat: 'liquids', icon: '🍯' },
+            MUD: { id: 26, color: '#442211', phase: 'LIQUID', density: 90, cat: 'liquids', icon: '〰' },
+            PETROL: { id: 27, color: '#ffdd00', phase: 'LIQUID', density: 35, flammability: 0.95, cat: 'liquids', icon: '⛽' },
+            WINE: { id: 28, color: '#880022', phase: 'LIQUID', density: 52, cat: 'liquids', icon: '🍷' },
+
+            // --- ENERGY ---
+            FIRE: { id: 40, color: '#ff6600', phase: 'GAS', density: -1, temp: 800, decay: 0.08, cat: 'energy', icon: '🔥' },
+            COLD_FIRE: { id: 41, color: '#00ffff', phase: 'GAS', density: -1, temp: -150, decay: 0.08, cat: 'energy', icon: '✧' },
+            ICE: { id: 42, color: '#e0ffff', phase: 'SOLID', density: 45, melt: 0, cat: 'energy', icon: '🧊' },
+            STEAM: { id: 43, color: '#dddddd', phase: 'GAS', density: -5, temp: 120, decay: 0.01, cat: 'energy', icon: '☁' },
+            PLASMA: { id: 44, color: '#ff00ff', phase: 'GAS', density: -10, temp: 5000, decay: 0.1, cat: 'energy', icon: '✺' },
+            LIGHTNING: { id: 45, color: '#ffffff', phase: 'ENERGY', temp: 30000, decay: 0.5, cat: 'energy', icon: 'ϟ' },
+            SMOKE: { id: 46, color: '#444444', phase: 'GAS', density: -2, decay: 0.005, cat: 'energy', icon: '🌫' },
+
+            // --- BIO ---
+            SEED: { id: 60, color: '#66ff00', phase: 'POWDER', density: 80, cat: 'bio', icon: '🌱' },
+            GRASS: { id: 61, color: '#22aa00', phase: 'SOLID', flammability: 0.6, cat: 'bio', icon: '🌿' },
+            MOLD: { id: 62, color: '#446600', phase: 'BIOME', flammability: 0.3, cat: 'bio', icon: '🍄' },
+            ALGAE: { id: 63, color: '#005522', phase: 'LIQUID', density: 51, cat: 'bio', icon: '🦠' },
+            VINE: { id: 64, color: '#00ff44', phase: 'SOLID', flammability: 0.5, cat: 'bio', icon: '🎋' },
+            SPORE: { id: 65, color: '#bbffaa', phase: 'GAS', density: 1, cat: 'bio', icon: '·' },
+            FLOWER: { id: 66, color: '#ff88cc', phase: 'SOLID', cat: 'bio', icon: '✿' },
+
+            // --- TECH ---
+            TNT: { id: 80, color: '#ff0033', phase: 'SOLID', density: 140, cat: 'industrial', icon: '🧨' },
+            FUSE: { id: 81, color: '#664422', phase: 'SOLID', flammability: 1.0, cat: 'industrial', icon: '〰' },
+            STEEL: { id: 82, color: '#aaaaaa', phase: 'SOLID', density: 500, conduct: 0.9, cat: 'industrial', icon: '⚙' },
+            COPPER: { id: 83, color: '#cc8844', phase: 'SOLID', density: 550, conduct: 1.0, cat: 'industrial', icon: '◰' },
+            GLASS: { id: 84, color: '#ffffff55', phase: 'SOLID', density: 180, cat: 'industrial', icon: '⨀' },
+            C4: { id: 85, color: '#ffeedd', phase: 'SOLID', density: 140, cat: 'industrial', icon: '💣' },
+            WOOD: { id: 86, color: '#884422', phase: 'SOLID', density: 80, flammability: 0.2, cat: 'industrial', icon: '🪵' },
+            URANIUM: { id: 87, color: '#00ff00', phase: 'SOLID', density: 900, temp: 400, radio: true, cat: 'industrial', icon: '☢' },
+            THERMITE: { id: 88, color: '#555555', phase: 'POWDER', density: 150, temp: 2500, cat: 'industrial', icon: '◬' },
+            PLASTIC: { id: 89, color: '#eeeeee', phase: 'SOLID', density: 30, cat: 'industrial', icon: '█' },
+            BRICK: { id: 90, color: '#cc4422', phase: 'SOLID', density: 190, cat: 'earth', icon: '🧱' },
+            CONCRETE: { id: 91, color: '#555555', phase: 'SOLID', density: 210, cat: 'earth', icon: '⧉' },
+            SALT_GLASS: { id: 92, color: '#ffffffAA', phase: 'SOLID', density: 170, cat: 'earth', icon: '✦' },
+            DRY_ICE: { id: 93, color: '#ccffff', phase: 'SOLID', density: 40, temp: -80, cat: 'energy', icon: '❄' },
+            METHANE: { id: 94, color: '#88ff88', phase: 'GAS', density: -3, flammability: 0.9, cat: 'energy', icon: '☁' },
+            NITRO: { id: 95, color: '#ffee00', phase: 'LIQUID', density: 30, flammability: 1.0, explosive: true, cat: 'liquids', icon: '✴' },
+            SLIME: { id: 96, color: '#00ff44', phase: 'LIQUID', density: 65, viscosity: 0.9, cat: 'bio', icon: '🧬' },
+            // --- EXOTIC ---
+            BLACK_HOLE: { id: 110, color: '#ffffff', phase: 'FORCE', cat: 'special', icon: '◈' },
+            WHITE_HOLE: { id: 111, color: '#ffaaaa', phase: 'FORCE', cat: 'special', icon: '✧' },
+            ANTIMATTER: { id: 112, color: '#ff00ff', phase: 'POWDER', density: 0, cat: 'special', icon: '❇' },
+            VOID_DUST: { id: 113, color: '#222222', phase: 'POWDER', density: -1, cat: 'special', icon: '░' }, // Anti-gravity dust
+            GLITCH: { id: 114, color: '#ffffff', phase: 'SOLID', cat: 'special', icon: '▤' },
+        };
+
+        const REVERSE_LOOKUP = {};
+        Object.values(ELEMENTS).forEach(e => REVERSE_LOOKUP[e.id] = e);
+
+        let width, height;
+        let scale = 4;
+        let cols, rows;
+        let grid;
+        let nextGrid;
+        let tempGrid;
+        let mouse = { x: 0, y: 0, down: false, size: 4 };
+        let activeEl = ELEMENTS.SAND;
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            cols = simCanvas.width = Math.ceil(width / scale);
+            rows = simCanvas.height = Math.ceil(height / scale);
+            grid = new Uint8Array(cols * rows);
+            nextGrid = new Uint8Array(cols * rows);
+            tempGrid = new Float32Array(cols * rows); 
+            tempGrid.fill(20); 
+            initWorld();
+        }
+
+        function initWorld() {
+            grid.fill(ELEMENTS.AIR.id);
+            // Draw initial floor
+            for(let x=0; x<cols; x++) {
+                setPixel(x, rows-5, ELEMENTS.STONE.id);
+            }
+        }
+
+        function setPixel(x, y, id) {
+            if (x >=0 && x < cols && y >=0 && y < rows) {
+                grid[y * cols + x] = id;
+            }
+        }
+
+        function populateGrid(cat) {
+            elementGrid.innerHTML = '';
+            Object.values(ELEMENTS).filter(e => e.cat === cat).forEach(e => {
+                const btn = document.createElement('div');
+                btn.className = 'element-btn ' + (activeEl.id === e.id ? 'active' : '');
+                btn.innerHTML = `${e.icon}<span>${e.id === 0 ? 'Clear' : Object.keys(ELEMENTS).find(k => ELEMENTS[k].id === e.id)}</span>`;
+                btn.onclick = () => {
+                    activeEl = e;
+                    populateGrid(cat);
+                };
+                elementGrid.appendChild(btn);
+            });
+        }
+
+        // --- SIMULATION LOOP ---
+
+        function update() {
+            nextGrid.set(grid);
+            
+            // Bottm to top iteration
+            for (let y = rows - 1; y >= 0; y--) {
+                let dir = Math.random() > 0.5 ? 1 : -1;
+                for (let x = (dir === 1 ? 0 : cols-1); (dir === 1 ? x < cols : x >= 0); (dir === 1 ? x++ : x--)) {
+                    let i = y * cols + x;
+                    let elId = grid[i];
+                    if (elId === ELEMENTS.AIR.id) continue;
+                    
+                    let el = REVERSE_LOOKUP[elId];
+                    let below = i + cols;
+                    let bL = below - 1;
+                    let bR = below + 1;
+
+                    // Thermodynamic Diffusion
+                    let avgTemp = (
+                        (tempGrid[i-1] || 20) + (tempGrid[i+1] || 20) + 
+                        (tempGrid[i-cols] || 20) + (tempGrid[i+cols] || 20)
+                    ) / 4;
+                    tempGrid[i] += (avgTemp - tempGrid[i]) * 0.1;
+
+                    // Material Physics
+                    if (el.phase === 'POWDER') {
+                        if (y < rows - 1) {
+                            if (canMoveTo(grid[below], el)) swap(i, below);
+                            else if (x > 0 && canMoveTo(grid[bL], el)) swap(i, bL);
+                            else if (x < cols - 1 && canMoveTo(grid[bR], el)) swap(i, bR);
+                        }
+                    } else if (el.phase === 'LIQUID') {
+                        if (y < rows - 1) {
+                            if (canMoveTo(grid[below], el)) swap(i, below);
+                            else {
+                                let move = Math.random() > 0.5 ? 1 : -1;
+                                if (x + move >= 0 && x + move < cols && canMoveTo(grid[i + move], el)) swap(i, i + move);
+                            }
+                        }
+                    } else if (el.phase === 'GAS') {
+                        let above = i - cols;
+                        if (y > 0) {
+                            if (canMoveTo(grid[above], el)) swap(i, above);
+                            else {
+                                let move = Math.random() > 0.5 ? 2 : -2; // Drift faster
+                                if (x + move >= 0 && x + move < cols && canMoveTo(grid[i + move], el)) swap(i, i + move);
+                            }
+                        }
+                        if (el.decay && Math.random() < el.decay) nextGrid[i] = ELEMENTS.AIR.id;
+                    }
+
+                    // Temperature Reactions (Phase Shifts)
+                    if (el.id === ELEMENTS.WATER.id && tempGrid[i] > 100) nextGrid[i] = ELEMENTS.STEAM.id;
+                    if (el.id === ELEMENTS.WATER.id && tempGrid[i] < 0) nextGrid[i] = ELEMENTS.ICE.id;
+                    if (el.id === ELEMENTS.ICE.id && tempGrid[i] > 0) nextGrid[i] = ELEMENTS.WATER.id;
+                    if (el.id === ELEMENTS.LAVA.id && tempGrid[i] < 600) nextGrid[i] = ELEMENTS.STONE.id;
+                    if (el.id === ELEMENTS.STONE.id && tempGrid[i] > 1200) nextGrid[i] = ELEMENTS.LAVA.id;
+
+                    // BIOLOGICAL GROWTH
+                    if (el.phase === 'BIOME') {
+                        let neighbors = [i-1, i+1, i-cols, i+cols];
+                        neighbors.forEach(ni => {
+                            let target = REVERSE_LOOKUP[grid[ni]];
+                            if (target && (target.id === ELEMENTS.WOOD.id || target.id === ELEMENTS.DIRT.id || target.id === ELEMENTS.WATER.id)) {
+                                if (Math.random() > 0.99) nextGrid[ni] = el.id;
+                            }
+                        });
+                    }
+
+                    // Advanced Chemical Reactions
+                    if (el.flammability && Math.random() < el.flammability) {
+                        let neighbors = [i-1, i+1, i-cols, i+cols];
+                        neighbors.forEach(ni => {
+                            if (grid[ni] === ELEMENTS.FIRE.id || tempGrid[ni] > 400) nextGrid[i] = ELEMENTS.FIRE.id;
+                        });
+                    }
+
+                    if (el.corrosive) {
+                        for(let di of [-1, 1, -cols, cols]) {
+                            let ni = i + di;
+                            let target = REVERSE_LOOKUP[grid[ni]];
+                            if (target && target.id !== ELEMENTS.AIR.id && target.id !== ELEMENTS.ACID.id && !target.corrosive) {
+                                if (Math.random() > 0.95) {
+                                    nextGrid[ni] = ELEMENTS.AIR.id;
+                                    if (Math.random() > 0.8) nextGrid[ni] = ELEMENTS.SMOKE.id;
+                                }
+                            }
+                        }
+                    }
+
+                    // EXPLOSION LOGIC
+                    if (el.explosive || el.id === ELEMENTS.TNT.id || el.id === ELEMENTS.C4.id) {
+                        if (tempGrid[i] > 200) {
+                            nextGrid[i] = ELEMENTS.FIRE.id;
+                            // Create a radial shockwave of fire
+                            for(let r=1; r<10; r++) {
+                                let angle = Math.random() * Math.PI * 2;
+                                let ni = i + Math.floor(Math.cos(angle)*r) + Math.floor(Math.sin(angle)*r)*cols;
+                                if (ni >=0 && ni < grid.length) {
+                                    nextGrid[ni] = ELEMENTS.FIRE.id;
+                                    tempGrid[ni] = 1000;
+                                }
+                            }
+                        }
+                    }
+
+                    if (el.conduct) {
+                        let neighbors = [i-1, i+1, i-cols, i+cols];
+                        neighbors.forEach(ni => {
+                            if (grid[ni] === ELEMENTS.LIGHTNING.id) {
+                                if (Math.random() > 0.1) nextGrid[i] = ELEMENTS.LIGHTNING.id; 
+                            }
+                        });
+                    }
+
+                    // EXOTIC PHYSICS (FORCE)
+                    if (el.id === ELEMENTS.BLACK_HOLE.id) {
+                        for(let dy=-5; dy<=5; dy++) {
+                            for(let dx=-5; dx<=5; dx++) {
+                                let ni = (y+dy)*cols + (x+dx);
+                                if (ni >=0 && ni < grid.length && Math.random()>0.7) {
+                                    if (grid[ni] !== ELEMENTS.BLACK_HOLE.id) nextGrid[ni] = ELEMENTS.AIR.id;
+                                }
+                            }
+                        }
+                    }
+
+                    if (el.id === ELEMENTS.ANTIMATTER.id) {
+                        let neighbors = [i-1, i+1, i-cols, i+cols];
+                        neighbors.forEach(ni => {
+                            if (grid[ni] !== ELEMENTS.AIR.id && grid[ni] !== ELEMENTS.ANTIMATTER.id) {
+                                nextGrid[i] = ELEMENTS.AIR.id;
+                                nextGrid[ni] = ELEMENTS.PLASMA.id;
+                                tempGrid[ni] = 5000;
+                            }
+                        });
+                    }
+
+                    if (el.temp) tempGrid[i] += (el.temp - tempGrid[i]) * 0.3; 
+                }
+            }
+            grid.set(nextGrid);
+        }
+
+        function canMoveTo(targetId, source) {
+            let target = REVERSE_LOOKUP[targetId];
+            if (targetId === ELEMENTS.AIR.id) return true;
+            if (source.phase === 'POWDER' && target.phase === 'LIQUID') return true; // Sink in liquids
+            if (source.phase === 'GAS' && source.density < target.density) return true; // Gas rises
+            return false;
+        }
+
+        function swap(i, j) {
+            let temp = nextGrid[i];
+            nextGrid[i] = nextGrid[j];
+            nextGrid[j] = temp;
+        }
+
+        // --- RENDERING ---
+
+        function draw() {
+            const imageData = simCtx.createImageData(cols, rows);
+            const data = new Uint32Array(imageData.data.buffer);
+
+            // Calculate colors ONLY for the small simulation grid
+            for (let i = 0; i < grid.length; i++) {
+                let id = grid[i];
+                let el = REVERSE_LOOKUP[id];
+                
+                let hex = el.color.replace('#', '');
+                let r = parseInt(hex.substring(0, 2), 16);
+                let g = parseInt(hex.substring(2, 4), 16);
+                let b = parseInt(hex.substring(4, 6), 16);
+
+                if (tempGrid[i] > 500) {
+                    r = Math.min(255, r + (tempGrid[i]-500)*0.2);
+                    g = Math.min(255, g + (tempGrid[i]-1000)*0.1);
+                }
+
+                data[i] = (255 << 24) | (b << 16) | (g << 8) | r;
+            }
+            simCtx.putImageData(imageData, 0, 0);
+
+            // Upscale to main canvas
+            ctx.imageSmoothingEnabled = false;
+            ctx.drawImage(simCanvas, 0, 0, width, height);
+
+            // POST-PROCESSING: Bloom 
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.globalAlpha = 0.2;
+            ctx.drawImage(canvas, 0, 0);
+            ctx.restore();
+
+            // Draw Canvas Cursor (Smooth & Locked)
+            ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(mouse.x, mouse.y, mouse.size * scale, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            ctx.fillStyle = 'rgba(0, 242, 255, 0.8)';
+            ctx.beginPath();
+            ctx.arc(mouse.x, mouse.y, 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Brush Input
+            if (mouse.down) {
+                let gx = Math.floor(mouse.x / scale);
+                let gy = Math.floor(mouse.y / scale);
+                for(let dy=-mouse.size; dy<=mouse.size; dy++) {
+                    for(let dx=-mouse.size; dx<=mouse.size; dx++) {
+                        if (dx*dx+dy*dy <= mouse.size*mouse.size) {
+                            setPixel(gx+dx, gy+dy, activeEl.id);
+                        }
+                    }
+                }
+            }
+        }
+
+        function loop() {
+            update();
+            draw();
+            stats.innerHTML = `PIXELS: ${cols*rows} | TEMP: ${Math.round(tempGrid[Math.floor(mouse.y/scale)*cols+Math.floor(mouse.x/scale)] || 20)}°C<br>
+                               BRUSH: ${activeEl.id === 0 ? 'VOID' : Object.keys(ELEMENTS).find(k => ELEMENTS[k].id === activeEl.id)} | SIZE: ${mouse.size}<br>
+                               STATUS: SIMULATION_ACTIVE`;
+            requestAnimationFrame(loop);
+        }
+
+        // --- EVENT LISTENERS ---
+
+        window.addEventListener('mousedown', (e) => {
+            if (e.target === canvas) mouse.down = true;
+        });
+        window.addEventListener('mouseup', () => mouse.down = false);
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        });
+        window.addEventListener('wheel', (e) => {
+            mouse.size = Math.max(1, Math.min(30, mouse.size + (e.deltaY < 0 ? 1 : -1)));
+        });
+
+        document.querySelectorAll('.tab').forEach(t => {
+            t.onclick = () => {
+                document.querySelectorAll('.tab').forEach(tb => tb.classList.remove('active'));
+                t.classList.add('active');
+                populateGrid(t.dataset.cat);
+            };
+        });
+
+        resize();
+        populateGrid('earth');
+        loop();
+    </script>
+</body>
+</html>

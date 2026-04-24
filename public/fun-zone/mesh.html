@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberMesh | Interactive Elasticity</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #020202;
+            --accent: #00ffaa;
+            --secondary: #0088ff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            cursor: none;
+        }
+
+        body {
+            background-color: var(--bg);
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            font-family: 'IBM+Plex+Mono', monospace;
+            color: #fff;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        .hud {
+            position: fixed;
+            top: 40px;
+            right: 40px;
+            text-align: right;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .hud h1 {
+            font-size: 14px;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 4px;
+        }
+
+        .hud p {
+            font-size: 10px;
+            letter-spacing: 0.1em;
+            opacity: 0.4;
+        }
+
+        /* Cursor */
+        .cursor {
+            width: 10px;
+            height: 10px;
+            border: 2px solid white;
+            position: fixed;
+            pointer-events: none;
+            z-index: 1000;
+            transform: translate(-50%, -50%);
+        }
+    </style>
+</head>
+<body>
+    <div class="hud">
+        <h1>Elastic.Mesh</h1>
+        <p>SPRING-DAMPER MATRIX V.1</p>
+    </div>
+
+    <canvas id="canvas"></canvas>
+    <div class="cursor" id="cursor"></div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const cursor = document.getElementById('cursor');
+
+        let width, height;
+        let mouse = { x: -100, y: -100, pX: -100, pY: -100 };
+        
+        const spacing = 40;
+        let points = [];
+        let rows, cols;
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            
+            cols = Math.ceil(width / spacing) + 1;
+            rows = Math.ceil(height / spacing) + 1;
+            
+            init();
+        }
+
+        class Point {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.baseX = x;
+                this.baseY = y;
+                this.vx = 0;
+                this.vy = 0;
+            }
+
+            update() {
+                // Spring force back to base position
+                let dx = this.baseX - this.x;
+                let dy = this.baseY - this.y;
+                this.vx += dx * 0.05;
+                this.vy += dy * 0.05;
+
+                // Mouse interaction
+                let mDx = mouse.x - this.x;
+                let mDy = mouse.y - this.y;
+                let mDist = Math.sqrt(mDx * mDx + mDy * mDy);
+                
+                if (mDist < 120) {
+                    let force = (120 - mDist) / 120;
+                    // Move away from mouse but also drag with mouse velocity
+                    this.vx -= (mDx / mDist) * force * 15;
+                    this.vy -= (mDy / mDist) * force * 15;
+                    
+                    // Mouse drag effect
+                    this.vx += (mouse.x - mouse.pX) * force * 0.5;
+                    this.vy += (mouse.y - mouse.pY) * force * 0.5;
+                }
+
+                // Friction
+                this.vx *= 0.92;
+                this.vy *= 0.92;
+
+                this.x += this.vx;
+                this.y += this.vy;
+            }
+        }
+
+        function init() {
+            points = [];
+            for (let r = 0; r < rows; r++) {
+                points[r] = [];
+                for (let c = 0; c < cols; c++) {
+                    points[r][c] = new Point(c * spacing, r * spacing);
+                }
+            }
+        }
+
+        function animate() {
+            ctx.fillStyle = '#020202';
+            ctx.fillRect(0, 0, width, height);
+
+            // Update all points
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    points[r][c].update();
+                }
+            }
+
+            // Draw grid lines
+            ctx.lineWidth = 0.5;
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const p = points[r][c];
+                    
+                    // Vertical connections
+                    if (r < rows - 1) {
+                        const down = points[r + 1][c];
+                        drawLine(p, down);
+                    }
+                    
+                    // Horizontal connections
+                    if (c < cols - 1) {
+                        const right = points[r][c + 1];
+                        drawLine(p, right);
+                    }
+                }
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        function drawLine(p1, p2) {
+            const dx = p1.x - p2.x;
+            const dy = p1.y - p2.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            
+            // Highlight lines that are stretched
+            const stress = Math.max(0, (dist - spacing) / spacing);
+            
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            
+            // Color based on stress
+            ctx.strokeStyle = `hsla(${160 + stress * 100}, 100%, ${50 + stress * 30}%, ${0.2 + stress})`;
+            ctx.stroke();
+        }
+
+        window.addEventListener('mousemove', (e) => {
+            mouse.pX = mouse.x;
+            mouse.pY = mouse.y;
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+            
+            cursor.style.left = e.clientX + 'px';
+            cursor.style.top = e.clientY + 'px';
+        });
+
+        window.addEventListener('resize', resize);
+
+        resize();
+        animate();
+    </script>
+</body>
+</html>

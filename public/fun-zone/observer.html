@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Observer | Interactive Swarm Entity</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #020205;
+            --accent: #00f2ff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            cursor: none;
+        }
+
+        body {
+            background-color: var(--bg);
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            font-family: 'Outfit', sans-serif;
+            color: #fff;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        #ui {
+            position: fixed;
+            top: 40px;
+            left: 40px;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        #ui h1 {
+            font-size: 14px;
+            letter-spacing: 0.5em;
+            text-transform: uppercase;
+            font-weight: 600;
+            opacity: 0.8;
+            color: var(--accent);
+        }
+
+        #ui p {
+            font-size: 8px;
+            letter-spacing: 0.2em;
+            opacity: 0.3;
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+
+        /* Custom Cursor */
+        .cursor {
+            width: 6px;
+            height: 6px;
+            background: white;
+            position: fixed;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1000;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
+            transform: translate(-50%, -50%);
+        }
+    </style>
+</head>
+<body>
+    <div id="ui">
+        <h1>NEURAL.OBSERVER.v1</h1>
+        <p>STATUS: ACTIVE // TARGET_LOCKED</p>
+    </div>
+
+    <canvas id="stage"></canvas>
+    <div class="cursor" id="cursor"></div>
+
+    <script>
+        const canvas = document.getElementById('stage');
+        const ctx = canvas.getContext('2d');
+        const cursor = document.getElementById('cursor');
+
+        let width, height;
+        let particles = [];
+        const count = 4500;
+        let mouse = { x: -100, y: -100, down: false };
+        
+        // Eye parameters
+        let eyePos = { x: 0, y: 0 };
+        let irisRadius = 160;
+        let pupilRadius = 60;
+        let isBlinking = false;
+        let blinkProgress = 0;
+        let scatterMode = false;
+        let scatterTimer = 0;
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            eyePos.x = width / 2;
+            eyePos.y = height / 2;
+            init();
+        }
+
+        class Particle {
+            constructor(id) {
+                this.id = id;
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.vx = 0;
+                this.vy = 0;
+                this.tx = this.x;
+                this.ty = this.y;
+                
+                // Color mapping: Iris vs Pupil vs Outers
+                if (id < 3000) {
+                    this.type = 'iris';
+                    this.hue = 180 + Math.random() * 80;
+                } else if (id < 3800) {
+                    this.type = 'pupil';
+                    this.hue = 0; // Black/Gray
+                } else {
+                    this.type = 'outer';
+                    this.hue = 200;
+                }
+                
+                this.size = Math.random() * 1.5 + 0.5;
+            }
+
+            update() {
+                // Determine target based on state
+                if (scatterMode) {
+                    // Random destination far away
+                    if (scatterTimer === 100) {
+                        this.tx = Math.random() * width;
+                        this.ty = Math.random() * height;
+                    }
+                } else {
+                    this.assignEyeTarget();
+                }
+
+                // Physics: Move towards target
+                let dx = this.tx - this.x;
+                let dy = this.ty - this.y;
+                let dist = Math.sqrt(dx * dx + dy * dy);
+                
+                let force = Math.min(dist * 0.05, 5);
+                let angle = Math.atan2(dy, dx);
+                
+                this.vx += Math.cos(angle) * force;
+                this.vy += Math.sin(angle) * force;
+                
+                // Friction
+                this.vx *= 0.85;
+                this.vy *= 0.85;
+
+                this.x += this.vx;
+                this.y += this.vy;
+            }
+
+            assignEyeTarget() {
+                // Calculate gaze offset
+                let gDx = mouse.x - eyePos.x;
+                let gDy = mouse.y - eyePos.y;
+                let gDist = Math.sqrt(gDx * gDx + gDy * gDy);
+                let maxGaze = 40;
+                let gazeX = (gDx / (gDist + 1)) * maxGaze;
+                let gazeY = (gDy / (gDist + 1)) * maxGaze;
+                
+                // Pupil Dilation
+                let dilation = Math.max(0.5, Math.min(1.5, 400 / (gDist + 1)));
+                let currentPupilR = pupilRadius * dilation;
+
+                if (this.type === 'pupil') {
+                    // Pupil targets
+                    let angle = (this.id % 800) * (Math.PI * 2 / 800);
+                    let r = Math.sqrt(Math.random()) * currentPupilR;
+                    this.tx = eyePos.x + gazeX + Math.cos(angle) * r;
+                    this.ty = eyePos.y + gazeY + Math.sin(angle) * r;
+                } else if (this.type === 'iris') {
+                    // Iris targets
+                    let angle = (this.id % 3000) * (Math.PI * 2 / 3000);
+                    let r = currentPupilR + Math.random() * (irisRadius - currentPupilR);
+                    this.tx = eyePos.x + gazeX*0.7 + Math.cos(angle) * r;
+                    this.ty = eyePos.y + gazeY*0.7 + Math.sin(angle) * r;
+                } else {
+                    // Outer structural points (Eyelids)
+                    let angle = (this.id % 700) * (Math.PI * 2 / 700);
+                    let rX = irisRadius * 1.5;
+                    let rY = irisRadius * 0.8;
+                    this.tx = eyePos.x + Math.cos(angle) * rX;
+                    this.ty = eyePos.y + Math.sin(angle) * rY;
+                }
+
+                // Blink handling: Force Y towards center
+                if (isBlinking) {
+                    let blinkY = eyePos.y;
+                    this.ty = this.ty + (blinkY - this.ty) * blinkProgress;
+                }
+            }
+
+            draw() {
+                if (this.type === 'pupil') {
+                    ctx.fillStyle = `rgba(10, 10, 20, 0.8)`;
+                } else if (this.type === 'iris') {
+                    ctx.fillStyle = `hsla(${this.hue}, 80%, 60%, 0.6)`;
+                } else {
+                    ctx.fillStyle = `rgba(255, 255, 255, 0.1)`;
+                }
+                
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function init() {
+            particles = [];
+            for (let i = 0; i < count; i++) {
+                particles.push(new Particle(i));
+            }
+        }
+
+        let blinkTimer = 0;
+        function animate() {
+            ctx.fillStyle = 'rgba(2, 2, 5, 0.2)';
+            ctx.fillRect(0, 0, width, height);
+
+            // Blink logic
+            blinkTimer++;
+            if (blinkTimer > 200 && !isBlinking) {
+                isBlinking = true;
+                blinkProgress = 0;
+            }
+            if (isBlinking) {
+                blinkProgress += 0.15;
+                if (blinkProgress >= 1) {
+                    isBlinking = false;
+                    blinkTimer = 0;
+                }
+            }
+
+            // Scatter logic
+            let mDist = Math.sqrt((mouse.x - eyePos.x)**2 + (mouse.y - eyePos.y)**2);
+            if (mDist < 80 && !scatterMode) {
+                scatterMode = true;
+                scatterTimer = 100;
+            }
+            if (scatterMode) {
+                scatterTimer--;
+                if (scatterTimer <= 0) scatterMode = false;
+            }
+
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+            cursor.style.left = e.clientX + 'px';
+            cursor.style.top = e.clientY + 'px';
+        });
+
+        window.addEventListener('mousedown', () => {
+            isBlinking = true;
+            blinkProgress = 0.5;
+        });
+
+        window.addEventListener('resize', resize);
+
+        resize();
+        animate();
+    </script>
+</body>
+</html>
