@@ -7,12 +7,16 @@ export interface Castle {
   width: number;
   height: number;
   team: Team;
+  level: number;
 }
+
+export type TroopType = 'basic' | 'archer' | 'berserker';
 
 export interface Troop {
   id: string;
   x: number;
   y: number;
+  type: TroopType;
   speed: number;
   team: Team;
   size: number;
