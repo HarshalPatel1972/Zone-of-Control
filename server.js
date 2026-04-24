@@ -23,7 +23,10 @@ io.on("connection", (socket) => {
     rooms.get(roomId).add(socket.id);
     
     const clients = rooms.get(roomId);
-    console.log(`User ${socket.id} joined room ${roomId}. Total: ${clients.size}`);
+    const role = clients.size === 1 ? 'host' : 'guest';
+    socket.emit('assign-role', role);
+    
+    console.log(`User ${socket.id} joined room ${roomId} as ${role}. Total: ${clients.size}`);
     
     if (clients.size >= 2) {
       io.to(roomId).emit("start-game");

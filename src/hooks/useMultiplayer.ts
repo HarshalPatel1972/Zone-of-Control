@@ -8,6 +8,7 @@ export const useMultiplayer = (roomId: string, onEnemySpawn: (team: Team, type: 
   const socketRef = useRef<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isGameStarted, setIsGameStarted] = useState(false);
+  const [role, setRole] = useState<'host' | 'guest' | null>(null);
 
   useEffect(() => {
     const socket = io('http://localhost:3001');
@@ -17,6 +18,11 @@ export const useMultiplayer = (roomId: string, onEnemySpawn: (team: Team, type: 
       console.log('Connected to signaling server');
       setIsConnected(true);
       socket.emit('join-room', roomId);
+    });
+
+    socket.on('assign-role', (assignedRole: 'host' | 'guest') => {
+      console.log('Assigned role:', assignedRole);
+      setRole(assignedRole);
     });
 
     socket.on('start-game', () => {
@@ -40,5 +46,5 @@ export const useMultiplayer = (roomId: string, onEnemySpawn: (team: Team, type: 
     }
   };
 
-  return { isConnected, isGameStarted, sendSpawn };
+  return { isConnected, isGameStarted, role, sendSpawn };
 };

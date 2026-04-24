@@ -12,20 +12,18 @@ export default function RoomPage() {
   const { id: roomId } = useParams() as { id: string };
   const engine = useMemo(() => new GameEngine(), []);
   const [gameState, setGameState] = useState(engine.getState());
-  const [isHost, setIsHost] = useState(true); // Simplified: first one is host
 
   // Initialize engine for multiplayer
   useEffect(() => {
     engine.setMultiplayer(true);
   }, [engine]);
 
-  const { isGameStarted, sendSpawn } = useMultiplayer(roomId, (team, type) => {
-    // When enemy spawns, we add it to the engine
-    // If we are Host (Player), enemy is Opponent
-    // If we are Guest (Opponent), enemy is Player
+  const { isGameStarted, role, sendSpawn } = useMultiplayer(roomId, (team, type) => {
     engine.spawnRemoteTroop(team);
     setGameState(engine.getState());
   });
+
+  const isHost = role === 'host';
 
   // Sync UI state with Engine state
   useEffect(() => {
