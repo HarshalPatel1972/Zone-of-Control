@@ -18,13 +18,13 @@ export default function RoomPage() {
   // Initialize engine for multiplayer
   useEffect(() => {
     engine.setMultiplayer(true);
-    engine.enableAudio(); // Enable sound system
+    engine.enableAudio();
   }, [engine]);
 
   const { isGameStarted, role, sendSpawn } = useMultiplayer(roomId, (team, type) => {
     engine.spawnRemoteTroop(team);
     setGameState(engine.getState());
-    setPing(Math.floor(Math.random() * 20) + 10); // Simulated ping update
+    setPing(Math.floor(Math.random() * 20) + 10);
   });
 
   const isHost = role === 'host';
@@ -44,11 +44,7 @@ export default function RoomPage() {
 
   const handleSpawnTroop = () => {
     if (!isGameStarted) return;
-    
-    // If Host, we are 'player'. If Guest, we are 'opponent'.
     const myTeam = isHost ? 'player' : 'opponent';
-    
-    // Check gold locally
     const currentGold = isHost ? gameState.gold : gameState.opponentGold;
     if (currentGold < TROOP_STATS.BASIC.cost) return;
 
@@ -67,55 +63,67 @@ export default function RoomPage() {
   const canAfford = myGold >= TROOP_STATS.BASIC.cost;
 
   return (
-    <main className="min-h-screen bg-[#F0F0F0] p-8 flex flex-col items-center justify-center font-mono overflow-hidden">
-      <div className="max-w-6xl w-full space-y-8">
-        {/* Header */}
-        <header className="bg-black text-white p-6 border-[4px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,0.3)] flex justify-between items-center">
-          <div>
-            <h1 className="text-4xl font-black uppercase tracking-tighter">Zone of Control</h1>
-            <p className="text-sm mt-2 opacity-80 italic underline decoration-white/40">Multiplayer Lobby // Room: {roomId}</p>
-          </div>
-          
-          <div className="flex gap-4">
-            <div className="bg-zinc-800 text-white p-4 border-[4px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)]">
-              <span className="block text-[10px] font-black uppercase opacity-50">Enemy Funds</span>
-              <span className="text-xl font-black">${enemyGold}</span>
+    <main className="min-h-screen bg-[#0D0D0D] p-4 sm:p-8 flex flex-col items-center justify-center font-sans overflow-hidden scanlines">
+      <div className="max-w-7xl w-full space-y-6 relative z-10">
+        
+        {/* Instrumentation-style Header */}
+        <header className="flex flex-col md:flex-row gap-4 items-stretch">
+          <div className="bg-black border-[4px] border-black brutalist-shadow p-6 flex-1 flex flex-col justify-between">
+            <div className="flex justify-between items-start">
+              <div>
+                <h1 className="text-3xl font-black uppercase tracking-tighter leading-none">
+                  Sector <span className="text-[var(--accent-primary)]">{roomId.substring(0, 4)}</span>
+                </h1>
+                <p className="text-[10px] font-bold text-white/40 uppercase mt-2 tracking-widest">
+                  Operational Theater // Sync Status: {isGameStarted ? 'Active' : 'Locked'}
+                </p>
+              </div>
+              <div className="bg-[var(--accent-primary)] text-black px-3 py-1 text-[10px] font-black uppercase">
+                {isHost ? 'Host Command' : 'Remote Guest'}
+              </div>
             </div>
             
-            <div className={`bg-white text-black p-4 border-[4px] border-black shadow-[6px_6px_0px_0px_rgba(255,255,255,0.2)] transition-all ${myGold < TROOP_STATS.BASIC.cost ? 'bg-red-50 text-red-900 border-red-900 shadow-none scale-95' : 'bg-white'}`}>
-              <span className="block text-xs font-black uppercase opacity-50">My Treasury</span>
-              <span className="text-3xl font-black">${myGold}</span>
+            <div className="mt-6 flex gap-8">
+              <div className="flex flex-col">
+                <span className="text-[9px] font-black uppercase text-white/30 tracking-widest">Latency</span>
+                <span className={`text-xl font-black ${ping > 100 ? 'text-red-500' : 'text-green-500'}`}>
+                  {ping}ms
+                </span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[9px] font-black uppercase text-white/30 tracking-widest">Troops</span>
+                <span className="text-xl font-black">{gameState.troops.length}</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[9px] font-black uppercase text-white/30 tracking-widest">Status</span>
+                <span className="text-xl font-black uppercase text-[var(--accent-primary)]">Online</span>
+              </div>
             </div>
+          </div>
+
+          {/* Economy Display */}
+          <div className="flex gap-4 min-w-[320px]">
+             <div className="flex-1 bg-[#1A1A1A] brutalist-border brutalist-shadow p-4 flex flex-col justify-center items-center">
+                <span className="text-[9px] font-black uppercase text-white/40 mb-1">Host Treasury</span>
+                <span className="text-3xl font-black font-mono text-white">${gameState.gold}</span>
+             </div>
+             <div className="flex-1 bg-[var(--accent-primary)] brutalist-border brutalist-shadow p-4 flex flex-col justify-center items-center">
+                <span className="text-[9px] font-black uppercase text-black/60 mb-1">Guest Treasury</span>
+                <span className="text-3xl font-black font-mono text-black">${gameState.opponentGold}</span>
+             </div>
           </div>
         </header>
 
-        <style jsx global>{`
-          @keyframes pulse-gold {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); background-color: #fef08a; }
-            100% { transform: scale(1); }
-          }
-          .pulse-active {
-            animation: pulse-gold 0.2s ease-in-out;
-          }
-        `}</style>
-
-        {/* Game Area */}
-        <div className="relative border-[10px] border-black shadow-[20px_20px_0px_0px_rgba(0,0,0,1)] bg-white">
+        {/* Combat Theater */}
+        <div className="relative bg-white brutalist-border brutalist-shadow-lg overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-transparent via-[var(--accent-primary)] to-transparent opacity-30 animate-pulse"></div>
           <GameCanvas engine={engine} />
           
-          {/* Ping Indicator */}
-          {isGameStarted && (
-            <div className="absolute top-4 right-4 bg-black text-white px-2 py-1 text-[10px] font-black uppercase tracking-widest z-10">
-              NET: {ping}ms // SYNCED
-            </div>
-          )}
-
           {!isGameStarted && (
             <LobbyOverlay 
               roomId={roomId} 
               isHost={isHost} 
-              onCopy={() => console.log('Link copied')} 
+              onCopy={() => {}} 
             />
           )}
 
@@ -126,37 +134,54 @@ export default function RoomPage() {
           />
         </div>
 
-        {/* UI Controls */}
-        <div className="bg-white p-8 border-[6px] border-black shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] flex flex-wrap gap-6 items-center">
-          <div className="relative group">
+        {/* Tactical Controls */}
+        <div className="bg-[#1A1A1A] p-6 brutalist-border brutalist-shadow flex flex-col md:flex-row gap-6 items-center">
+          <div className="flex-1 flex gap-4 w-full md:w-auto">
             <button
               onClick={handleSpawnTroop}
               disabled={!canAfford || !isGameStarted}
-              className={`px-8 py-4 text-xl font-bold uppercase border-[4px] border-black transition-all active:translate-x-1 active:translate-y-1 active:shadow-none shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] ${
+              className={`flex-1 h-20 text-2xl font-black uppercase border-[4px] border-black transition-all flex items-center justify-center gap-4 relative overflow-hidden ${
                 canAfford && isGameStarted
-                  ? 'bg-black text-white hover:bg-white hover:text-black cursor-pointer' 
-                  : 'bg-gray-300 text-gray-500 border-gray-400 shadow-none translate-x-1 translate-y-1 cursor-not-allowed'
+                  ? 'bg-[var(--accent-primary)] text-black hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]' 
+                  : 'bg-zinc-800 text-zinc-600 border-zinc-700 cursor-not-allowed'
               }`}
             >
-              Spawn Basic Troop
+              <span className="relative z-10">Deploy Basic Unit</span>
+              <span className="bg-black text-[var(--accent-primary)] px-2 py-1 text-xs font-black brutalist-border group-hover:bg-white transition-colors">
+                {TROOP_STATS.BASIC.cost}G
+              </span>
+              {canAfford && isGameStarted && (
+                <div className="absolute top-0 left-0 w-full h-1 bg-white/40 animate-[slide_1s_infinite]"></div>
+              )}
             </button>
-            <span className="absolute -top-4 -right-4 bg-yellow-400 text-black text-xs font-black px-2 py-1 border-2 border-black rotate-12">
-              COST: {TROOP_STATS.BASIC.cost}G
-            </span>
           </div>
 
-          <div className="flex-1 flex justify-end gap-8 text-sm font-black uppercase">
-            <div className="border-l-4 border-black pl-4">
-              <span className="block opacity-50">Role</span>
-              <span className="text-2xl">{isHost ? 'Host (Left)' : 'Guest (Right)'}</span>
+          <div className="flex gap-4 w-full md:w-auto">
+            <div className="bg-black text-white p-4 border-[4px] border-black flex flex-col justify-center items-center min-w-[140px]">
+               <span className="text-[9px] font-black uppercase text-white/40 mb-1 italic">Castle Integrity</span>
+               <div className="flex items-end gap-1">
+                 <span className="text-3xl font-black text-[var(--accent-secondary)]">
+                   {Math.ceil((gameState.playerCastle.health / gameState.playerCastle.maxHealth) * 100)}
+                 </span>
+                 <span className="text-sm font-black mb-1 opacity-40">%</span>
+               </div>
             </div>
-            <div className="border-l-4 border-black pl-4">
-              <span className="block opacity-50">Connection</span>
-              <span className="text-2xl text-green-600">{isGameStarted ? 'Synced' : 'Waiting'}</span>
-            </div>
+            <button 
+              onClick={handleExit}
+              className="bg-zinc-800 text-white px-6 py-4 border-[4px] border-black font-black uppercase text-xs hover:bg-red-600 transition-colors"
+            >
+              Aband.
+            </button>
           </div>
         </div>
       </div>
+
+      <style jsx>{`
+        @keyframes slide {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+      `}</style>
     </main>
   );
 }
