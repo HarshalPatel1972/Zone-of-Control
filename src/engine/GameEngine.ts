@@ -3,9 +3,20 @@ import { GameState, Troop, Castle, Team } from './types';
 export const CANVAS_WIDTH = 1600;
 export const CANVAS_HEIGHT = 900;
 
+export const TROOP_STATS = {
+  BASIC: {
+    cost: 25,
+    health: 100,
+    attackDamage: 10,
+    attackRange: 50,
+    attackCooldown: 1000,
+    speed: 2.5,
+    size: 40,
+  }
+};
+
 export class GameEngine {
   private state: GameState;
-  private onStateChange?: (state: GameState) => void;
 
   constructor() {
     this.state = {
@@ -26,6 +37,8 @@ export class GameEngine {
         team: 'opponent',
       },
       troops: [],
+      gold: 100,
+      lastIncomeTime: Date.now(),
       isPaused: false,
     };
   }
@@ -35,17 +48,32 @@ export class GameEngine {
   }
 
   public spawnTroop(team: Team) {
+    if (team === 'player' && this.state.gold < TROOP_STATS.BASIC.cost) return;
+
+    if (team === 'player') {
+      this.state.gold -= TROOP_STATS.BASIC.cost;
+    }
+
     const id = Math.random().toString(36).substr(2, 9);
     const castle = team === 'player' ? this.state.playerCastle : this.state.opponentCastle;
     
     const newTroop: Troop = {
       id,
       x: team === 'player' ? castle.x + castle.width : castle.x,
-      y: CANVAS_HEIGHT - 100, // Ground level
-      speed: team === 'player' ? 2 : -2,
+      y: CANVAS_HEIGHT - 60, // Ground level
+      speed: team === 'player' ? TROOP_STATS.BASIC.speed : -TROOP_STATS.BASIC.speed,
       team,
-      size: 40,
-      color: team === 'player' ? '#000000' : '#FF0000',
+      size: TROOP_STATS.BASIC.size,
+      color: team === 'player' ? '#000' : '#FFF',
+      health: TROOP_STATS.BASIC.health,
+      maxHealth: TROOP_STATS.BASIC.health,
+      attackDamage: TROOP_STATS.BASIC.attackDamage,
+      attackRange: TROOP_STATS.BASIC.attackRange,
+      attackCooldown: TROOP_STATS.BASIC.attackCooldown,
+      lastAttackTime: 0,
+      isAttacking: false,
+      isTakingDamage: false,
+      damageFlashTimer: 0,
     };
 
     this.state.troops.push(newTroop);
@@ -54,10 +82,13 @@ export class GameEngine {
   public update() {
     if (this.state.isPaused) return;
 
-    // Update troops
-    this.state.troops.forEach((troop) => {
-      troop.x += troop.speed;
-    });
+    const now = Date.now();
+
+    // Update Economy (10 gold per second)
+    if (now - this.state.lastIncomeTime >= 1000) {
+      this.state.gold += 10;
+      this.state.lastIncomeTime = now;
+    }
 
     // Simple bounds check (cleanup)
     this.state.troops = this.state.troops.filter(
