@@ -187,39 +187,67 @@ export class GameEngine {
   }
 
   private drawCastle(ctx: CanvasRenderingContext2D, castle: Castle) {
+    const y = CANVAS_HEIGHT - 60 - castle.height;
+    
+    // Castle Body
     ctx.fillStyle = castle.team === 'player' ? '#FFF' : '#222';
     ctx.strokeStyle = '#000';
     ctx.lineWidth = 8;
-    
-    const y = CANVAS_HEIGHT - 60 - castle.height;
-    
-    // Main block
     ctx.fillRect(castle.x, y, castle.width, castle.height);
     ctx.strokeRect(castle.x, y, castle.width, castle.height);
 
-    // Health bar
-    const barWidth = castle.width;
-    const barHeight = 20;
-    const barX = castle.x;
-    const barY = y - 40;
+    // Large Stylized Health Bar
+    const barWidth = castle.width * 1.5;
+    const barHeight = 30;
+    const barX = castle.x - (barWidth - castle.width) / 2;
+    const barY = y - 60;
 
-    ctx.fillStyle = '#EEE';
+    // Bar Background
+    ctx.fillStyle = '#FFF';
     ctx.fillRect(barX, barY, barWidth, barHeight);
     ctx.strokeRect(barX, barY, barWidth, barHeight);
 
+    // Health Fill
     ctx.fillStyle = castle.team === 'player' ? '#000' : '#555';
-    const healthPercent = castle.health / castle.maxHealth;
+    const healthPercent = Math.max(0, castle.health / castle.maxHealth);
     ctx.fillRect(barX, barY, barWidth * healthPercent, barHeight);
+
+    // Health Text
+    ctx.fillStyle = castle.team === 'player' ? '#FFF' : '#FFF';
+    ctx.font = 'bold 16px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(`${Math.ceil(castle.health)}HP`, barX + barWidth / 2, barY + 20);
   }
 
   private drawTroop(ctx: CanvasRenderingContext2D, troop: Troop) {
-    ctx.fillStyle = troop.team === 'player' ? '#000' : '#FFF';
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 4;
-
     const drawY = troop.y - troop.size;
     
+    // Damage Flash / Normal Color
+    if (troop.isTakingDamage) {
+      ctx.fillStyle = '#F00'; // Stark Red on damage
+    } else if (troop.isAttacking) {
+      ctx.fillStyle = '#FFF'; // Stark White on attack
+    } else {
+      ctx.fillStyle = troop.team === 'player' ? '#000' : '#555';
+    }
+
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 4;
     ctx.fillRect(troop.x - troop.size / 2, drawY, troop.size, troop.size);
     ctx.strokeRect(troop.x - troop.size / 2, drawY, troop.size, troop.size);
+
+    // Troop Health Bar
+    const barWidth = troop.size * 1.2;
+    const barHeight = 8;
+    const barX = troop.x - barWidth / 2;
+    const barY = drawY - 15;
+
+    ctx.fillStyle = '#FFF';
+    ctx.fillRect(barX, barY, barWidth, barHeight);
+    ctx.strokeRect(barX, barY, barWidth, barHeight);
+
+    ctx.fillStyle = troop.team === 'player' ? '#000' : '#555';
+    const healthPercent = Math.max(0, troop.health / troop.maxHealth);
+    ctx.fillRect(barX, barY, barWidth * healthPercent, barHeight);
   }
 }
