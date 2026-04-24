@@ -38,7 +38,10 @@ export class GameEngine {
       },
       troops: [],
       gold: 100,
+      opponentGold: 100,
       lastIncomeTime: Date.now(),
+      lastAiDecisionTime: Date.now(),
+      status: 'playing',
       isPaused: false,
     };
   }
@@ -87,12 +90,20 @@ export class GameEngine {
     // Update Economy (10 gold per second)
     if (now - this.state.lastIncomeTime >= 1000) {
       this.state.gold += 10;
+      this.state.opponentGold += 10;
       this.state.lastIncomeTime = now;
-      
-      // Auto-spawn opponent every 5 seconds for combat testing
-      if (Math.random() < 0.2) { // 20% chance every second ~= once every 5s
-        this.spawnTroop('opponent');
+    }
+
+    // 2. Opponent AI Logic
+    if (this.state.status === 'playing' && now - this.state.lastAiDecisionTime >= 1000) {
+      if (this.state.opponentGold >= TROOP_STATS.BASIC.cost) {
+        // AI decides to spawn (random chance for human-like pacing)
+        if (Math.random() < 0.4) {
+          this.state.opponentGold -= TROOP_STATS.BASIC.cost;
+          this.spawnTroop('opponent');
+        }
       }
+      this.state.lastAiDecisionTime = now;
     }
 
     // 2. Update Troops
