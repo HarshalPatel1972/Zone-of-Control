@@ -28,10 +28,10 @@ export const LobbyOverlay: React.FC<LobbyOverlayProps> = ({ roomId, isHost, onCo
 
         <div className="mb-12">
           <div className="inline-block bg-[var(--accent-primary)] text-black px-4 py-1 text-xs font-black uppercase mb-4 tracking-widest">
-            Protocol: SECURE_TUNNEL
+            Status: INITIALIZING LOBBY
           </div>
           <h2 className="text-6xl font-black uppercase leading-none tracking-tighter text-white mb-6">
-            Establishing <br /> Connection
+            Waiting for <br /> Opponent
           </h2>
           <div className="h-6 bg-black w-full brutalist-border p-1">
             <div className="h-full bg-[var(--accent-primary)] animate-[progress_1.5s_infinite_linear]"></div>
@@ -40,7 +40,7 @@ export const LobbyOverlay: React.FC<LobbyOverlayProps> = ({ roomId, isHost, onCo
 
         <div className="space-y-8 bg-white/5 p-8 border-[4px] border-white/10">
           <p className="text-lg font-bold uppercase text-white/60 tracking-wider">
-            Share transmission link to recruit opposition:
+            Send this invite link to your friend to start the battle:
           </p>
 
           <div className="flex flex-col sm:flex-row gap-0 brutalist-border brutalist-shadow">
@@ -56,7 +56,7 @@ export const LobbyOverlay: React.FC<LobbyOverlayProps> = ({ roomId, isHost, onCo
                 copied ? 'bg-[var(--accent-primary)] text-black' : 'bg-white text-black hover:bg-[var(--accent-primary)]'
               }`}
             >
-              {copied ? 'Link Active' : 'Copy Signal'}
+              {copied ? 'Link Copied' : 'Copy Invite'}
             </button>
           </div>
 
