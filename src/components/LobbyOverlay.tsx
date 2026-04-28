@@ -20,39 +20,66 @@ export const LobbyOverlay: React.FC<LobbyOverlayProps> = ({ roomId, isHost, onCo
   };
 
   return (
-    <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/80 backdrop-blur-md">
-      <div className="fancy-border p-12 text-center max-w-2xl w-full mx-4 space-y-8 bg-[#2c1e0f]/95 shadow-[0_0_50px_rgba(0,0,0,0.9)]">
+    <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/40 backdrop-blur-xl animate-fade-in">
+      <div className="glass-panel p-10 md:p-14 text-center max-w-xl w-full mx-4 rounded-[3rem] space-y-10 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)]">
         
-        <div className="space-y-4">
-          <h2 className="game-title text-5xl font-black uppercase text-[var(--gold)]">
-            Seeking Allies
+        <div className="space-y-3">
+          <h2 className="fancy-title text-4xl font-bold tracking-tight">
+            Deploying <span className="text-white/40">Force</span>
           </h2>
-          <div className="h-1 w-24 bg-[var(--gold)] mx-auto opacity-50"></div>
-          <p className="text-xl italic opacity-80">"Victory requires a worthy adversary. Send your herald to the neighboring kingdom."</p>
+          <p className="text-white/50 text-base font-light tracking-wide italic">
+            "Strategy begins long before the first arrow is fired."
+          </p>
         </div>
 
         <div className="space-y-6">
           <div className="flex flex-col gap-4">
-            <input
-              type="text"
-              readOnly
-              value={lobbyUrl}
-              className="w-full bg-[#1a0f00] text-[var(--gold)] p-4 text-center text-sm font-mono border-2 border-[#3d2b16] outline-none"
-            />
+            <div className="relative group">
+              <input
+                type="text"
+                readOnly
+                value={lobbyUrl}
+                className="glass-input pr-12 text-center text-xs font-mono tracking-tighter opacity-60 group-hover:opacity-100 transition-opacity"
+              />
+              <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none opacity-20">
+                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                </svg>
+              </div>
+            </div>
+            
             <button
               onClick={handleCopy}
-              className="w-full py-4 bg-gradient-to-b from-[#D4AF37] to-[#8B6B00] text-[#1a0f00] font-black uppercase text-xl hover:brightness-110 active:scale-95 transition-all"
+              className="glass-button-primary w-full py-5 text-lg font-bold tracking-widest active:scale-[0.98]"
             >
-              {copied ? 'Herald Sent!' : 'Copy Invite Link'}
+              {copied ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="w-5 h-5 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                  LINK COPIED
+                </span>
+              ) : 'INVITE OPPONENT'}
             </button>
           </div>
         </div>
 
-        <div className="pt-4 flex justify-center items-center gap-2">
-            <div className="w-3 h-3 bg-[var(--gold)] rounded-full animate-pulse"></div>
-            <span className="text-sm font-bold uppercase tracking-widest opacity-60">Waiting for Opposition...</span>
+        <div className="pt-6 border-t border-white/5 flex flex-col items-center gap-3">
+            <div className="flex gap-1.5">
+              {[0, 1, 2].map((i) => (
+                <div 
+                  key={i} 
+                  className="w-1.5 h-1.5 bg-gold rounded-full animate-pulse" 
+                  style={{ animationDelay: `${i * 200}ms` }}
+                ></div>
+              ))}
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">
+              Establishing Strategic Link...
+            </span>
         </div>
       </div>
     </div>
   );
 };
+
