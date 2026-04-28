@@ -1,62 +1,113 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;900&family=Almendra:ital,wght@0,400;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --parchment: #F4E4BC;
-  --ink: #2C1E0F;
-  --gold: #D4AF37;
-  --victory-green: #2D5A27;
-  --defeat-red: #8B0000;
-  --ui-bg: rgba(44, 30, 15, 0.9);
+  /* Apple-inspired Premium Palette */
+  --glass-bg: rgba(15, 15, 18, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-accent: rgba(255, 255, 255, 0.05);
+  
+  --gold: #E2B759;
+  --gold-glow: rgba(226, 183, 89, 0.4);
+  
+  --success: #32D74B;
+  --error: #FF453A;
+  --warning: #FFD60A;
+  
+  --text-primary: #FFFFFF;
+  --text-secondary: rgba(255, 255, 255, 0.6);
+  --text-tertiary: rgba(255, 255, 255, 0.4);
 }
 
 body {
-  background-color: #1a0f00;
-  color: var(--parchment);
-  font-family: 'Almendra', serif;
-  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 86c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zm66-3c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zm-46-17c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zm54-46c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM57 6c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zm-8 24c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM14 45c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%232c1e0f' fill-opacity='0.2' fill-rule='evenodd'/%3E%3C/svg%3E");
+  background-color: #09090b;
+  color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
-.fancy-border {
-  border: 4px solid var(--gold);
-  box-shadow: 0 0 20px rgba(212, 175, 55, 0.3), inset 0 0 10px rgba(0,0,0,0.5);
-  background: var(--ui-bg);
+/* Glassmorphism Utilities */
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
 }
 
-.game-title {
+.glass-button {
+  @apply px-6 py-3 rounded-xl font-medium transition-all duration-300;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+}
+
+.glass-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.glass-button:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+}
+
+.glass-button-primary {
+  @apply px-6 py-3 rounded-xl font-bold transition-all duration-300;
+  background: linear-gradient(135deg, #E2B759 0%, #B8860B 100%);
+  color: #000;
+  box-shadow: 0 4px 15px var(--gold-glow);
+}
+
+.glass-button-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px var(--gold-glow);
+  filter: brightness(1.1);
+}
+
+.glass-input {
+  @apply w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 focus:outline-none focus:ring-2 focus:ring-gold/50 transition-all;
+}
+
+.fancy-title {
   font-family: 'Cinzel', serif;
-  letter-spacing: 0.1em;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
-}
-
-.unit-button {
-  @apply relative overflow-hidden transition-all duration-300 transform hover:scale-105 active:scale-95;
-  background: linear-gradient(135deg, #3d2b16 0%, #2c1e0f 100%);
-  border: 2px solid var(--gold);
-}
-
-.unit-button:disabled {
-  @apply grayscale opacity-50 cursor-not-allowed transform-none;
-}
-
-.gold-display {
-  background: radial-gradient(circle, #D4AF37 0%, #8B6B00 100%);
+  letter-spacing: 0.15em;
+  @apply font-bold uppercase;
+  background: linear-gradient(to bottom, #FFFFFF 0%, #A5A5A5 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  font-family: 'Cinzel', serif;
+}
+
+.gold-glow {
+  filter: drop-shadow(0 0 8px var(--gold-glow));
 }
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 10px;
+  width: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #1a0f00;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--gold);
-  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
 }
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
