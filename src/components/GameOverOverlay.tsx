@@ -15,43 +15,48 @@ export const GameOverOverlay: React.FC<GameOverOverlayProps> = ({ status, onRest
   const isVictory = status === 'victory';
 
   return (
-    <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/90 backdrop-blur-xl">
-      <div className="fancy-border p-16 text-center max-w-2xl w-full mx-4 space-y-10 bg-[#2c1e0f]/95 animate-in zoom-in-95 duration-500 shadow-[0_0_100px_rgba(0,0,0,1)]">
+    <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/60 backdrop-blur-2xl animate-fade-in px-4">
+      <div className="glass-panel p-12 md:p-20 text-center max-w-2xl w-full rounded-[4rem] space-y-12 shadow-[0_64px_128px_-32px_rgba(0,0,0,0.8)] border-white/10">
         
-        <div className="space-y-4">
-          <h2 className={`game-title text-8xl font-black uppercase drop-shadow-2xl ${isVictory ? 'text-[var(--victory-green)]' : 'text-[var(--defeat-red)]'}`}>
+        <div className="space-y-6">
+          <h2 className={`fancy-title text-7xl md:text-9xl font-black tracking-tighter drop-shadow-[0_0_30px_rgba(255,255,255,0.2)] ${isVictory ? '!text-success' : '!text-error'}`}>
             {status === 'victory' ? 'Victory' : 'Defeat'}
           </h2>
-          <div className={`h-1 w-48 mx-auto opacity-50 ${isVictory ? 'bg-[var(--victory-green)]' : 'bg-[var(--defeat-red)]'}`}></div>
+          <div className="flex justify-center items-center gap-4">
+            <div className={`h-[2px] w-16 ${isVictory ? 'bg-success/30' : 'bg-error/30'}`}></div>
+            <p className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Operation Concluded</p>
+            <div className={`h-[2px] w-16 ${isVictory ? 'bg-success/30' : 'bg-error/30'}`}></div>
+          </div>
         </div>
         
-        <p className="text-2xl font-bold italic opacity-90 leading-relaxed max-w-md mx-auto">
+        <p className="text-xl md:text-2xl font-light text-white/70 leading-relaxed max-w-md mx-auto italic">
           {isVictory 
-            ? 'The enemy has been vanquished. Your kingdom flourishes in the light of triumph.' 
-            : 'Your stronghold has crumbled. The banners have fallen, but the legend remains.'
+            ? 'Strategic objective achieved. Your dominance over the sector is absolute.' 
+            : 'Strategic failure. The sector has been compromised, but the war continues.'
           }
         </p>
 
-        <div className="flex flex-col gap-4 max-w-sm mx-auto">
+        <div className="flex flex-col gap-5 max-w-sm mx-auto pt-4">
           <button
             onClick={onRestart}
-            className={`w-full py-6 text-3xl font-black uppercase rounded-sm shadow-2xl hover:brightness-125 transition-all active:scale-95 ${
+            className={`w-full py-6 text-xl font-bold tracking-[0.2em] uppercase rounded-2xl shadow-2xl transition-all active:scale-95 ${
                 isVictory 
-                ? 'bg-gradient-to-b from-[#D4AF37] to-[#8B6B00] text-[#1a0f00]' 
-                : 'bg-zinc-200 text-black'
+                ? 'glass-button-primary' 
+                : 'bg-white text-black hover:bg-white/90'
             }`}
           >
-            Play Again
+            REDEPLOY
           </button>
           
           <button
             onClick={onExit}
-            className="w-full py-4 bg-transparent border-2 border-white/20 text-white font-bold uppercase tracking-widest hover:bg-white/10 transition-all"
+            className="glass-button w-full py-4 text-xs font-black uppercase tracking-[0.3em] text-white/40 hover:text-white/80 border-white/5 hover:border-white/20"
           >
-            Return to Hall
+            TERMINATE SESSION
           </button>
         </div>
       </div>
     </div>
   );
 };
+
