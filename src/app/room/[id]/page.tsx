@@ -64,101 +64,102 @@ export default function RoomPage() {
   const enemyGold = isHost ? gameState.opponentGold : gameState.gold;
 
   return (
-    <main className="min-h-screen bg-[#1a0f00] p-2 sm:p-6 flex flex-col items-center overflow-hidden">
+    <main className="min-h-screen bg-[#09090b] p-4 sm:p-8 flex flex-col items-center overflow-hidden font-inter">
       
-      {/* Top Banner */}
-      <div className="max-w-[1400px] w-full flex justify-between items-center mb-6 px-4 py-3 fancy-border bg-[#2c1e0f]">
-        <div className="flex items-center gap-6">
-          <div className="text-center">
-            <span className="block text-[10px] uppercase text-[var(--gold)] opacity-60">Battlefield</span>
-            <span className="text-xl font-bold uppercase tracking-widest">#{roomId.substring(0,4)}</span>
+      {/* Top HUD Banner */}
+      <div className="max-w-[1400px] w-full flex justify-between items-center mb-8 px-8 py-5 glass-panel rounded-[2rem] border-white/5">
+        <div className="flex items-center gap-10">
+          <div className="space-y-1">
+            <span className="block text-[10px] uppercase tracking-[0.3em] text-white/30 font-black">Theater</span>
+            <span className="text-lg font-bold tracking-tight text-white/90">Sector {roomId.substring(0,4).toUpperCase()}</span>
           </div>
-          <div className="h-10 w-px bg-white/10"></div>
-          <div className="text-center">
-            <span className="block text-[10px] uppercase text-[var(--gold)] opacity-60">Network</span>
-            <span className="text-xl font-bold uppercase text-green-500">{ping}ms</span>
+          <div className="h-10 w-px bg-white/5"></div>
+          <div className="space-y-1">
+            <span className="block text-[10px] uppercase tracking-[0.3em] text-white/30 font-black">Sync</span>
+            <span className={`text-lg font-mono font-bold ${ping < 50 ? 'text-success' : 'text-warning'}`}>{ping}ms</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-12">
-            <div className="text-right">
-                <span className="block text-[10px] uppercase text-[var(--gold)] opacity-60 mb-1">Treasury</span>
-                <span className="text-5xl font-black gold-display">${myGold}</span>
+        <div className="flex items-center gap-16">
+            <div className="text-center group">
+                <span className="block text-[10px] uppercase tracking-[0.3em] text-white/30 font-black mb-1 group-hover:text-gold transition-colors">Treasury</span>
+                <span className="text-5xl font-black tracking-tighter gold-glow text-gold">${myGold}</span>
             </div>
-            <div className="h-16 w-px bg-white/10"></div>
-            <div className="text-left">
-                <span className="block text-[10px] uppercase text-[var(--gold)] opacity-60 mb-1">Opposition</span>
-                <span className="text-3xl font-bold opacity-60">${enemyGold}</span>
+            <div className="h-16 w-px bg-white/5"></div>
+            <div className="text-center">
+                <span className="block text-[10px] uppercase tracking-[0.3em] text-white/30 font-black mb-1">Opposition</span>
+                <span className="text-3xl font-bold text-white/20 tracking-tighter">${enemyGold}</span>
             </div>
         </div>
 
-        <button onClick={handleExit} className="px-6 py-2 border-2 border-[#8B0000] text-[#8B0000] text-xs font-bold uppercase hover:bg-[#8B0000] hover:text-white transition-all">
+        <button 
+          onClick={handleExit} 
+          className="px-8 py-3 glass-button text-[10px] font-black uppercase tracking-[0.2em] text-error border-error/20 hover:bg-error/10 hover:border-error/40 transition-all rounded-full"
+        >
           Retreat
         </button>
       </div>
 
-      {/* Battlefield View */}
-      <div className="relative w-full max-w-[1400px] aspect-[16/9] border-8 border-[#3d2b16] shadow-2xl overflow-hidden rounded-sm bg-black">
-        <GameCanvas engine={engine} />
-        
-        {!isGameStarted && (
-          <LobbyOverlay roomId={roomId} isHost={isHost} onCopy={() => {}} />
-        )}
+      {/* Primary Battlefield Container */}
+      <div className="relative w-full max-w-[1400px] aspect-[16/9] glass-panel p-2 rounded-[2.5rem] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)] border-white/5 overflow-hidden">
+        <div className="w-full h-full rounded-[1.8rem] overflow-hidden bg-black">
+          <GameCanvas engine={engine} />
+          
+          {!isGameStarted && (
+            <LobbyOverlay roomId={roomId} isHost={isHost} onCopy={() => {}} />
+          )}
 
-        <GameOverOverlay 
-          status={gameState.status} 
-          onRestart={() => engine.reset()} 
-          onExit={handleExit}
-        />
+          <GameOverOverlay 
+            status={gameState.status} 
+            onRestart={() => engine.reset()} 
+            onExit={handleExit}
+          />
+        </div>
       </div>
 
-      {/* Command Bar */}
-      <div className="max-w-[1200px] w-full mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-        <button
-          onClick={() => handleSpawn('basic')}
-          disabled={!isGameStarted || myGold < TROOP_STATS.BASIC.cost}
-          className="unit-button p-4 flex flex-col items-center"
-        >
-          <img src="/assets/knight.png" className="w-16 h-16 mb-2 object-contain" />
-          <span className="text-xl font-bold uppercase mb-1">Knight</span>
-          <span className="text-sm text-[var(--gold)] font-bold tracking-widest">${TROOP_STATS.BASIC.cost}G</span>
-        </button>
-
-        <button
-          onClick={() => handleSpawn('archer')}
-          disabled={!isGameStarted || myGold < TROOP_STATS.ARCHER.cost}
-          className="unit-button p-4 flex flex-col items-center"
-        >
-          <img src="/assets/archer.png" className="w-16 h-16 mb-2 object-contain" />
-          <span className="text-xl font-bold uppercase mb-1">Archer</span>
-          <span className="text-sm text-[var(--gold)] font-bold tracking-widest">${TROOP_STATS.ARCHER.cost}G</span>
-        </button>
-
-        <button
-          onClick={() => handleSpawn('berserker')}
-          disabled={!isGameStarted || myGold < TROOP_STATS.BERSERKER.cost}
-          className="unit-button p-4 flex flex-col items-center"
-        >
-          <img src="/assets/berserker.png" className="w-16 h-16 mb-2 object-contain" />
-          <span className="text-xl font-bold uppercase mb-1">Berserker</span>
-          <span className="text-sm text-[var(--gold)] font-bold tracking-widest">${TROOP_STATS.BERSERKER.cost}G</span>
-        </button>
+      {/* Command Interface */}
+      <div className="max-w-[1200px] w-full mt-10 grid grid-cols-2 md:grid-cols-4 gap-6 px-4 animate-fade-in">
+        {[
+          { type: 'basic', name: 'Knight', asset: 'knight.png', cost: TROOP_STATS.BASIC.cost },
+          { type: 'archer', name: 'Archer', asset: 'archer.png', cost: TROOP_STATS.ARCHER.cost },
+          { type: 'berserker', name: 'Slayer', asset: 'berserker.png', cost: TROOP_STATS.BERSERKER.cost },
+        ].map((unit) => (
+          <button
+            key={unit.type}
+            onClick={() => handleSpawn(unit.type as TroopType)}
+            disabled={!isGameStarted || myGold < unit.cost}
+            className="glass-button h-40 flex flex-col items-center justify-center gap-3 group relative overflow-hidden disabled:opacity-20 disabled:grayscale transition-all duration-500 rounded-3xl"
+          >
+            <div className="absolute inset-0 bg-gold/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <img src={`/assets/${unit.asset}`} className="w-20 h-20 object-contain drop-shadow-xl group-hover:scale-110 transition-transform duration-500" />
+            <div className="text-center">
+              <span className="block text-sm font-bold uppercase tracking-widest text-white/80 group-hover:text-white">{unit.name}</span>
+              <span className="text-[10px] text-gold font-black tracking-[0.2em]">${unit.cost}</span>
+            </div>
+          </button>
+        ))}
 
         <button
           onClick={handleUpgrade}
           disabled={!isGameStarted || (isHost ? gameState.playerCastle.level >= 3 : gameState.opponentCastle.level >= 3)}
-          className="unit-button p-4 flex flex-col items-center"
+          className="glass-button h-40 flex flex-col items-center justify-center gap-4 group relative overflow-hidden disabled:opacity-20 transition-all duration-500 rounded-3xl"
         >
-          <div className="w-16 h-16 mb-2 flex items-center justify-center border-2 border-[var(--gold)] rounded-full">
-            <span className="text-3xl">↑</span>
+          <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          <div className="w-14 h-14 flex items-center justify-center rounded-2xl bg-white/5 border border-white/10 group-hover:border-gold/50 transition-colors">
+            <svg className="w-8 h-8 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 11l7-7 7 7M5 19l7-7 7 7" />
+            </svg>
           </div>
-          <span className="text-xl font-bold uppercase mb-1">Fortify Castle</span>
-          <span className="text-sm text-[var(--gold)] font-bold tracking-widest uppercase">
-            LVL {(isHost ? gameState.playerCastle.level : gameState.opponentCastle.level)}
-          </span>
+          <div className="text-center">
+            <span className="block text-sm font-bold uppercase tracking-widest text-white/80 group-hover:text-white">Fortify</span>
+            <span className="text-[10px] text-white/30 font-black tracking-[0.2em]">
+              RANK {(isHost ? gameState.playerCastle.level : gameState.opponentCastle.level)}
+            </span>
+          </div>
         </button>
       </div>
 
     </main>
   );
 }
+
