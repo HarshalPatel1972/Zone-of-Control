@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Inter:wght@300;400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -25,10 +23,11 @@
 body {
   background-color: #09090b;
   color: var(--text-primary);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
 }
+
 
 /* Glassmorphism Utilities */
 .glass-panel {
@@ -74,13 +73,14 @@ body {
 }
 
 .fancy-title {
-  font-family: 'Cinzel', serif;
+  font-family: var(--font-cinzel), serif;
   letter-spacing: 0.15em;
   @apply font-bold uppercase;
   background: linear-gradient(to bottom, #FFFFFF 0%, #A5A5A5 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+
 
 .gold-glow {
   filter: drop-shadow(0 0 8px var(--gold-glow));

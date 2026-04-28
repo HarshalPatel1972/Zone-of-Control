@@ -33,7 +33,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ engine }) => {
   }, [engine]);
 
   return (
-    <div className="relative w-full aspect-video border-[6px] border-black bg-white shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
+    <div className="relative w-full h-full overflow-hidden bg-[#09090b]">
       <canvas
         ref={canvasRef}
         width={CANVAS_WIDTH}
@@ -43,3 +43,4 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ engine }) => {
     </div>
   );
 };
+
