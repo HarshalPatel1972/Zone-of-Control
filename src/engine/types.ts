@@ -112,4 +112,5 @@ export interface GameState {
   playerAbilities: Record<AbilityType, { cooldown: number, lastUsed: number }>;
   opponentAbilities: Record<AbilityType, { cooldown: number, lastUsed: number }>;
   stats: Record<Team, MatchStats>;
+  cameraX: number;
 }

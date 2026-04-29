@@ -1,7 +1,8 @@
 import { GameState, Troop, Castle, Team, Particle, TroopType, CpuDifficulty, Projectile, AbilityType, WeatherType, Emote, MatchStats } from './types';
 
-export const CANVAS_WIDTH = 1600;
+export const CANVAS_WIDTH = 4000;
 export const CANVAS_HEIGHT = 900;
+export const VIEW_WIDTH = 1600;
 
 export const TROOP_STATS = {
   BASIC: { cost: 20, health: 150, attackDamage: 12, attackRange: 50, attackCooldown: 800, speed: 2.8, size: 80, asset: 'knight' },
@@ -58,7 +59,8 @@ export class GameEngine {
       status: 'playing', isPaused: false, isMultiplayer: false, screenShake: 0,
       cpuDifficulty: 'medium', weather: 'clear', weatherTimer: Date.now(),
       playerAbilities: { ...abilityInit }, opponentAbilities: { ...abilityInit },
-      stats: { player: { ...statInit }, opponent: { ...statInit } }
+      stats: { player: { ...statInit }, opponent: { ...statInit } },
+      cameraX: 0
     };
   }
 
@@ -159,6 +161,12 @@ export class GameEngine {
     if (this.state.isPaused) return;
     const now = Date.now();
     
+    // 0. Camera Logic
+    const playerTroops = this.state.troops.filter(t => t.team === 'player');
+    const frontX = playerTroops.length > 0 ? Math.max(...playerTroops.map(t => t.x)) : 0;
+    const targetCamX = Math.max(0, Math.min(CANVAS_WIDTH - VIEW_WIDTH, frontX - VIEW_WIDTH / 2));
+    this.state.cameraX += (targetCamX - this.state.cameraX) * 0.1;
+
     // 1. Smooth Health Bars & Shields
     const smoothFactor = 0.1;
     [this.state.playerCastle, this.state.opponentCastle].forEach(c => {
@@ -376,9 +384,21 @@ export class GameEngine {
 
   public render(ctx: CanvasRenderingContext2D) {
     ctx.save();
+    
+    // Screen Shake
     if (this.state.screenShake > 0) ctx.translate((Math.random() - 0.5) * this.state.screenShake, (Math.random() - 0.5) * this.state.screenShake);
-    if (this.assets.bg.complete) ctx.drawImage(this.assets.bg, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-    else { ctx.fillStyle = '#09090b'; ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT); }
+    
+    // Background (Tiled or Stretched)
+    if (this.assets.bg.complete) {
+        // Draw background multiple times for parallax/scrolling
+        for (let i = 0; i < 3; i++) {
+            ctx.drawImage(this.assets.bg, (i * CANVAS_WIDTH/2) - this.state.cameraX * 0.5, 0, CANVAS_WIDTH/2, CANVAS_HEIGHT);
+        }
+    } else {
+        ctx.fillStyle = '#09090b'; ctx.fillRect(0, 0, VIEW_WIDTH, CANVAS_HEIGHT);
+    }
+
+    ctx.translate(-this.state.cameraX, 0);
 
     this.drawObjective(ctx);
     this.drawCastle(ctx, this.state.playerCastle);
