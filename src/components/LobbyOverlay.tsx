@@ -6,10 +6,12 @@ interface LobbyOverlayProps {
   roomId: string;
   isHost: boolean;
   onCopy: () => void;
+  onStartCpu: (diff: 'easy' | 'medium' | 'hard') => void;
 }
 
-export const LobbyOverlay: React.FC<LobbyOverlayProps> = ({ roomId, isHost, onCopy }) => {
+export const LobbyOverlay: React.FC<LobbyOverlayProps> = ({ roomId, isHost, onCopy, onStartCpu }) => {
   const [copied, setCopied] = useState(false);
+  const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
   const lobbyUrl = typeof window !== 'undefined' ? window.location.href : '';
 
   const handleCopy = () => {
@@ -34,32 +36,38 @@ export const LobbyOverlay: React.FC<LobbyOverlayProps> = ({ roomId, isHost, onCo
 
         <div className="space-y-6">
           <div className="flex flex-col gap-4">
-            <div className="relative group">
-              <input
-                type="text"
-                readOnly
-                value={lobbyUrl}
-                className="glass-input pr-12 text-center text-xs font-mono tracking-tighter opacity-60 group-hover:opacity-100 transition-opacity"
-              />
-              <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none opacity-20">
-                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-                </svg>
-              </div>
-            </div>
-            
             <button
               onClick={handleCopy}
               className="glass-button-primary w-full py-5 text-lg font-bold tracking-widest active:scale-[0.98]"
             >
-              {copied ? (
-                <span className="flex items-center justify-center gap-2">
-                  <svg className="w-5 h-5 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                  </svg>
-                  LINK COPIED
-                </span>
-              ) : 'INVITE OPPONENT'}
+              {copied ? 'LINK COPIED' : 'INVITE OPPONENT'}
+            </button>
+            
+            <div className="relative flex items-center gap-2 pt-4">
+              <div className="h-px flex-1 bg-white/10"></div>
+              <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">OR PRACTICE</span>
+              <div className="h-px flex-1 bg-white/10"></div>
+            </div>
+
+            <div className="flex gap-2 justify-center py-2">
+              {(['easy', 'medium', 'hard'] as const).map(d => (
+                <button
+                  key={d}
+                  onClick={() => setDifficulty(d)}
+                  className={`px-4 py-2 text-[10px] font-bold uppercase tracking-widest rounded-lg border transition-all ${
+                    difficulty === d ? 'bg-gold/20 border-gold text-gold' : 'bg-white/5 border-white/10 text-white/40'
+                  }`}
+                >
+                  {d}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => onStartCpu(difficulty)}
+              className="glass-button w-full py-4 text-sm font-bold tracking-widest hover:bg-white/10 transition-colors"
+            >
+              START TRAINING
             </button>
           </div>
         </div>
@@ -82,4 +90,5 @@ export const LobbyOverlay: React.FC<LobbyOverlayProps> = ({ roomId, isHost, onCo
     </div>
   );
 };
+
 

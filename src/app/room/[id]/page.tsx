@@ -31,24 +31,33 @@ export default function RoomPage() {
   const isHost = role === 'host';
   const handleExit = () => router.push('/');
 
+  const [isTraining, setIsTraining] = useState(false);
+  const isStarted = isGameStarted || isTraining;
+
+  const handleStartCpu = (diff: 'easy' | 'medium' | 'hard') => {
+    engine.setMultiplayer(false);
+    engine.setCpuDifficulty(diff);
+    setIsTraining(true);
+  };
+
   useEffect(() => {
-    if (!isGameStarted) return;
+    if (!isStarted) return;
     const interval = setInterval(() => setGameState(engine.getState()), 60);
     return () => clearInterval(interval);
-  }, [engine, isGameStarted]);
+  }, [engine, isStarted]);
 
   const handleSpawn = (type: TroopType) => {
-    if (!isGameStarted) return;
+    if (!isStarted) return;
     const team = isHost ? 'player' : 'opponent';
     const gold = isHost ? gameState.gold : gameState.opponentGold;
     if (gold < TROOP_STATS[type.toUpperCase() as keyof typeof TROOP_STATS].cost) return;
     engine.spawnTroop(team, type);
-    sendSpawn(team, type);
+    if (!isTraining) sendSpawn(team, type);
     setGameState(engine.getState());
   };
 
   const handleUpgrade = () => {
-    if (!isGameStarted) return;
+    if (!isStarted) return;
     const team = isHost ? 'player' : 'opponent';
     const gold = isHost ? gameState.gold : gameState.opponentGold;
     const castle = team === 'player' ? gameState.playerCastle : gameState.opponentCastle;
@@ -56,7 +65,7 @@ export default function RoomPage() {
     const upgrade = CASTLE_UPGRADES[nextLevel];
     if (!upgrade || gold < upgrade.cost) return;
     engine.upgradeCastle(team);
-    sendSpawn(team, 'upgrade');
+    if (!isTraining) sendSpawn(team, 'upgrade');
     setGameState(engine.getState());
   };
 
@@ -75,8 +84,8 @@ export default function RoomPage() {
           </div>
           <div className="h-10 w-px bg-white/5"></div>
           <div className="space-y-1">
-            <span className="block text-[10px] uppercase tracking-[0.3em] text-white/30 font-black">Sync</span>
-            <span className={`text-lg font-mono font-bold ${ping < 50 ? 'text-success' : 'text-warning'}`}>{ping}ms</span>
+            <span className="block text-[10px] uppercase tracking-[0.3em] text-white/30 font-black">Mode</span>
+            <span className="text-lg font-mono font-bold text-success">{isTraining ? 'TRAINING' : 'MULTIPLAYER'}</span>
           </div>
         </div>
 
@@ -105,8 +114,8 @@ export default function RoomPage() {
         <div className="w-full h-full rounded-[1.8rem] overflow-hidden bg-black">
           <GameCanvas engine={engine} />
           
-          {!isGameStarted && (
-            <LobbyOverlay roomId={roomId} isHost={isHost} onCopy={() => {}} />
+          {!isStarted && (
+            <LobbyOverlay roomId={roomId} isHost={isHost} onCopy={() => {}} onStartCpu={handleStartCpu} />
           )}
 
           <GameOverOverlay 
@@ -127,7 +136,8 @@ export default function RoomPage() {
           <button
             key={unit.type}
             onClick={() => handleSpawn(unit.type as TroopType)}
-            disabled={!isGameStarted || myGold < unit.cost}
+            disabled={!isStarted || myGold < unit.cost}
+
             className="glass-button h-40 flex flex-col items-center justify-center gap-3 group relative overflow-hidden disabled:opacity-20 disabled:grayscale transition-all duration-500 rounded-3xl"
           >
             <div className="absolute inset-0 bg-gold/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
