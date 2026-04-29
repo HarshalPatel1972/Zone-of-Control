@@ -310,6 +310,16 @@ export class GameEngine {
 
   private drawCastle(ctx: CanvasRenderingContext2D, castle: Castle) {
     const y = CANVAS_HEIGHT - 80 - castle.height;
+    const isUpgraded = castle.level > 1;
+
+    // Upgrade Glow
+    if (isUpgraded) {
+        ctx.save();
+        ctx.shadowBlur = 40;
+        ctx.shadowColor = castle.team === 'player' ? 'rgba(50, 215, 75, 0.3)' : 'rgba(255, 69, 58, 0.3)';
+        ctx.globalAlpha = 0.5 + Math.sin(Date.now() / 500) * 0.2;
+    }
+
     if (this.assets.castle.complete) {
         ctx.save();
         if (castle.team === 'opponent') {
@@ -321,30 +331,90 @@ export class GameEngine {
         }
         ctx.restore();
     }
-    // Health Bar
-    const bW = castle.width; const bH = 15; const bX = castle.x; const bY = y - 30;
-    ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(bX, bY, bW, bH);
+    
+    if (isUpgraded) ctx.restore();
+
+    // Premium Health Bar
+    const bW = castle.width; const bH = 12; const bX = castle.x; const bY = y - 40;
+    const radius = 6;
+    
+    // Background
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    this.roundRect(ctx, bX, bY, bW, bH, radius);
+    ctx.fill();
+
+    // Secondary (Catch-up) Bar
+    const secondaryP = Math.max(0, castle.secondaryHealth / castle.maxHealth);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+    this.roundRect(ctx, bX, bY, bW * secondaryP, bH, radius);
+    ctx.fill();
+
+    // Main HP Bar
     const hpP = Math.max(0, castle.health / castle.maxHealth);
-    ctx.fillStyle = castle.team === 'player' ? '#00FF00' : '#FF0000';
-    ctx.fillRect(bX, bY, bW * hpP, bH);
+    const grad = ctx.createLinearGradient(bX, 0, bX + bW, 0);
+    if (castle.team === 'player') { grad.addColorStop(0, '#32D74B'); grad.addColorStop(1, '#248A32'); }
+    else { grad.addColorStop(0, '#FF453A'); grad.addColorStop(1, '#A02A23'); }
+    
+    ctx.fillStyle = grad;
+    this.roundRect(ctx, bX, bY, bW * hpP, bH, radius);
+    ctx.fill();
+
+    // Level Badge
+    ctx.fillStyle = 'rgba(0,0,0,0.8)';
+    ctx.beginPath(); ctx.arc(bX + bW/2, bY - 15, 15, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#E2B759';
+    ctx.font = 'bold 14px Inter';
+    ctx.textAlign = 'center';
+    ctx.fillText(`LVL ${castle.level}`, bX + bW/2, bY - 11);
   }
 
   private drawTroop(ctx: CanvasRenderingContext2D, troop: Troop) {
     const img = this.assets[troop.type === 'basic' ? 'knight' : troop.type];
+    const bob = Math.sin(troop.bobbingTimer) * 4;
+    
     if (img && img.complete) {
         ctx.save();
-        ctx.translate(troop.x, troop.y - troop.size);
+        ctx.translate(troop.x, troop.y - troop.size + bob);
         if (troop.team === 'opponent') { ctx.translate(troop.size, 0); ctx.scale(-1, 1); }
-        if (troop.isTakingDamage) ctx.filter = 'brightness(2) sepia(1) hue-rotate(-50deg) saturate(5)';
+        if (troop.isTakingDamage) ctx.filter = 'brightness(2) saturate(2)';
         ctx.drawImage(img, 0, 0, troop.size, troop.size);
         ctx.restore();
     }
-    // Health Line
+
+    // Mini Premium Health Bar
+    const bW = troop.size; const bH = 6; const bX = troop.x; const bY = troop.y - troop.size - 20;
+    const radius = 3;
+
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    this.roundRect(ctx, bX, bY, bW, bH, radius);
+    ctx.fill();
+
+    const secondaryP = Math.max(0, troop.secondaryHealth / troop.maxHealth);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+    this.roundRect(ctx, bX, bY, bW * secondaryP, bH, radius);
+    ctx.fill();
+
     const hpP = Math.max(0, troop.health / troop.maxHealth);
-    ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(troop.x, troop.y - troop.size - 10, troop.size, 5);
-    ctx.fillStyle = troop.team === 'player' ? '#00FF00' : '#FF0000';
-    ctx.fillRect(troop.x, troop.y - troop.size - 10, troop.size * hpP, 5);
+    ctx.fillStyle = troop.team === 'player' ? '#32D74B' : '#FF453A';
+    this.roundRect(ctx, bX, bY, bW * hpP, bH, radius);
+    ctx.fill();
   }
+
+  private roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+    if (w < 0) w = 0;
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
 
   private drawParticle(ctx: CanvasRenderingContext2D, p: Particle) {
     ctx.globalAlpha = p.life; ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, p.size, p.size); ctx.globalAlpha = 1;
