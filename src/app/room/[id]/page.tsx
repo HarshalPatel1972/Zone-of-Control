@@ -163,24 +163,23 @@ export default function RoomPage() {
             </div>
           )}
 
-          {/* Quick-Abilities Floating Bar */}
           {isStarted && (
             <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex gap-4 animate-fade-in pointer-events-auto">
-               {[
-                 { id: 'meteor', name: 'Meteor', color: 'text-error' },
-                 { id: 'heal', name: 'Heal', color: 'text-success' },
-                 { id: 'shield', name: 'Shield', color: 'text-gold' }
-               ].map(ability => {
-                 const data = (isHost ? gameState.playerAbilities : gameState.opponentAbilities)[ability.id as any];
+               {(['meteor', 'heal', 'shield'] as const).map(id => {
+                 const abilities = isHost ? gameState.playerAbilities : gameState.opponentAbilities;
+                 const data = abilities[id];
                  const isReady = Date.now() - data.lastUsed >= data.cooldown;
+                 const name = id.charAt(0).toUpperCase() + id.slice(1);
+                 const colors = { meteor: 'text-error', heal: 'text-success', shield: 'text-gold' };
+                 
                  return (
                    <button
-                    key={ability.id}
-                    onClick={() => handleAbility(ability.id)}
+                    key={id}
+                    onClick={() => handleAbility(id)}
                     disabled={!isReady}
-                    className={`px-6 py-2 glass-panel rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${isReady ? `${ability.color} border-white/20 hover:scale-105 active:scale-95` : 'opacity-20 scale-90'}`}
+                    className={`px-6 py-2 glass-panel rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${isReady ? `${colors[id]} border-white/20 hover:scale-105 active:scale-95` : 'opacity-20 scale-90'}`}
                    >
-                     {ability.name}
+                     {name}
                    </button>
                  )
                })}
