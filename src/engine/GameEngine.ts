@@ -235,12 +235,28 @@ export class GameEngine {
   }
 
   private dealDamage(attacker: Troop | Projectile, defender: Troop | Castle) {
-    defender.health -= attacker.damage ?? (attacker as Troop).attackDamage;
+    const damage = 'damage' in attacker ? attacker.damage : (attacker as Troop).attackDamage;
+    defender.health -= damage;
+    
+    // Impact Particles
+    const particleColor = 'team' in defender ? (defender.team === 'player' ? '#FF453A' : '#FFD60A') : '#A5A5A5';
+    this.spawnImpactParticles(defender.x + (defender.width ? defender.width/2 : 0), defender.y ?? CANVAS_HEIGHT - 120, particleColor);
+
     if ('isTakingDamage' in defender) {
       (defender as Troop).isTakingDamage = true;
-      (defender as Troop).damageFlashTimer = 5;
+      (defender as Troop).damageFlashTimer = 8;
     } else {
-      this.state.screenShake = 15;
+      this.state.screenShake = 12;
+    }
+  }
+
+  private spawnImpactParticles(x: number, y: number, color: string) {
+    for (let i = 0; i < 5; i++) {
+      this.state.particles.push({
+        id: Math.random().toString(36).substr(2, 9), x, y,
+        vx: (Math.random() - 0.5) * 10, vy: (Math.random() - 0.5) * 10,
+        size: Math.random() * 4 + 2, color, life: 0.8
+      });
     }
   }
 
