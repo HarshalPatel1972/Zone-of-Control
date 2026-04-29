@@ -142,6 +142,33 @@ export default function RoomPage() {
             <LobbyOverlay roomId={roomId} isHost={isHost} onCopy={() => {}} onStartCpu={handleStartCpu} />
           )}
 
+          {/* Minimap */}
+          <div className="absolute top-6 right-6 w-80 h-20 glass-panel rounded-2xl overflow-hidden border-white/10 pointer-events-none">
+             <div className="relative w-full h-full bg-black/40 backdrop-blur-md">
+                {/* Viewport Indicator */}
+                <div 
+                  className="absolute top-0 h-full border border-gold/40 bg-gold/5" 
+                  style={{ 
+                    left: `${(gameState.cameraX / 4000) * 100}%`, 
+                    width: `${(1600 / 4000) * 100}%` 
+                  }}
+                />
+                {/* Castles */}
+                <div className="absolute left-0 bottom-2 w-4 h-4 bg-success/60 rounded-sm" style={{ left: '2.5%' }} />
+                <div className="absolute right-0 bottom-2 w-4 h-4 bg-error/60 rounded-sm" style={{ left: '91.25%' }} />
+                {/* Objective */}
+                <div className="absolute bottom-2 w-2 h-2 bg-gold/60 rounded-full" style={{ left: '50%', transform: 'translateX(-50%)' }} />
+                {/* Troops */}
+                {gameState.troops.map(t => (
+                  <div 
+                    key={t.id} 
+                    className={`absolute bottom-2 w-1 h-1 rounded-full ${t.team === 'player' ? 'bg-success' : 'bg-error'}`}
+                    style={{ left: `${(t.x / 4000) * 100}%` }}
+                  />
+                ))}
+             </div>
+          </div>
+
           <GameOverOverlay 
             status={gameState.status} 
             onRestart={() => engine.reset()} 

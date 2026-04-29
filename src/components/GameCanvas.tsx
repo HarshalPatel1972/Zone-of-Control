@@ -36,8 +36,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ engine }) => {
     <div className="relative w-full h-full overflow-hidden bg-[#09090b]">
       <canvas
         ref={canvasRef}
-        width={CANVAS_WIDTH}
-        height={CANVAS_HEIGHT}
+        width={1600}
+        height={900}
         className="w-full h-full object-contain"
       />
     </div>
