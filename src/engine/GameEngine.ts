@@ -159,7 +159,6 @@ export class GameEngine {
       this.state.troops.forEach((other) => {
         if (troop.id === other.id) return;
         const dist = troop.team === 'player' ? other.x - troop.x : troop.x - other.x;
-        // Only block if other is an enemy
         if (troop.team !== other.team) {
           if (dist > 0 && dist < troop.attackRange) { isBlocked = true; target = other; }
         }
@@ -168,13 +167,41 @@ export class GameEngine {
       if (!isBlocked) troop.x += troop.speed;
       else if (target) {
         if (now - troop.lastAttackTime >= troop.attackCooldown) {
-          this.dealDamage(troop, target); 
+          if (troop.type === 'archer') {
+            this.spawnProjectile(troop, target);
+          } else {
+            this.dealDamage(troop, target); 
+          }
           troop.lastAttackTime = now; 
           troop.isAttacking = true; 
           this.playSound('clash');
         }
       }
     });
+
+    // Update Projectiles
+    this.state.projectiles.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.25; // Gravity effect
+
+      // Collision with enemy troops
+      this.state.troops.forEach(t => {
+        if (t.team !== p.team && Math.abs(p.x - t.x) < 30 && Math.abs(p.y - (t.y - 40)) < 40) {
+          this.dealDamage(p, t);
+          p.y = 9999; // Kill projectile
+        }
+      });
+
+      // Collision with enemy castle
+      const eC = p.team === 'player' ? this.state.opponentCastle : this.state.playerCastle;
+      if (p.x >= eC.x && p.x <= eC.x + eC.width && p.y >= CANVAS_HEIGHT - eC.height - 100) {
+        this.dealDamage(p, eC);
+        p.y = 9999;
+      }
+    });
+    this.state.projectiles = this.state.projectiles.filter(p => p.y < CANVAS_HEIGHT && p.x >= 0 && p.x <= CANVAS_WIDTH);
+
 
     const deadTroops = this.state.troops.filter(t => t.health <= 0);
     deadTroops.forEach(t => this.spawnDeathParticles(t));
@@ -230,6 +257,38 @@ export class GameEngine {
   private playSound(type: 'spawn' | 'clash' | 'game_over') { if (this.audioEnabled) console.log(`[AUDIO] ${type}`); }
   public enableAudio() { this.audioEnabled = true; }
 
+  private spawnProjectile(attacker: Troop, target: Troop | Castle) {
+    const id = Math.random().toString(36).substr(2, 9);
+    const dx = target.x - attacker.x;
+    const dy = -150; // Initial arc height
+    const time = Math.abs(dx) / 10;
+    this.state.projectiles.push({
+      id, x: attacker.x, y: attacker.y - 60,
+      vx: dx / time, vy: dy / time,
+      team: attacker.team, damage: attacker.attackDamage, type: 'arrow'
+    });
+  }
+
+  private drawProjectile(ctx: CanvasRenderingContext2D, p: Projectile) {
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(Math.atan2(p.vy, p.vx));
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-15, 0);
+    ctx.lineTo(0, 0);
+    ctx.stroke();
+    // Arrow head
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(-5, -3);
+    ctx.lineTo(-5, 3);
+    ctx.fill();
+    ctx.restore();
+  }
+
   public render(ctx: CanvasRenderingContext2D) {
     ctx.save();
     if (this.state.screenShake > 0) ctx.translate((Math.random() - 0.5) * this.state.screenShake, (Math.random() - 0.5) * this.state.screenShake);
@@ -238,12 +297,13 @@ export class GameEngine {
     if (this.assets.bg.complete) {
       ctx.drawImage(this.assets.bg, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     } else {
-      ctx.fillStyle = '#1a1a1a'; ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+      ctx.fillStyle = '#09090b'; ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     }
 
     this.drawCastle(ctx, this.state.playerCastle);
     this.drawCastle(ctx, this.state.opponentCastle);
     this.state.troops.forEach(t => this.drawTroop(ctx, t));
+    this.state.projectiles.forEach(p => this.drawProjectile(ctx, p));
     this.state.particles.forEach(p => this.drawParticle(ctx, p));
     ctx.restore();
   }
