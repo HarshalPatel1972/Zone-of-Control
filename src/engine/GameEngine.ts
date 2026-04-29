@@ -1,4 +1,4 @@
-import { GameState, Troop, Castle, Team, Particle, TroopType } from './types';
+import { GameState, Troop, Castle, Team, Particle, TroopType, CpuDifficulty, Projectile } from './types';
 
 export const CANVAS_WIDTH = 1600;
 export const CANVAS_HEIGHT = 900;
