@@ -334,6 +334,7 @@ export class GameEngine {
     this.state.troops.forEach(t => this.drawTroop(ctx, t));
     this.state.projectiles.forEach(p => this.drawProjectile(ctx, p));
     this.state.particles.forEach(p => this.drawParticle(ctx, p));
+
     ctx.restore();
   }
 
