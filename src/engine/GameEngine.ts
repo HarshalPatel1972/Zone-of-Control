@@ -326,7 +326,7 @@ export class GameEngine {
   }
 
   private dealDamage(attacker: Troop | Projectile, defender: Troop | Castle) {
-    if (defender.activeShield && defender.activeShield > 0) return;
+    if ('activeShield' in defender && defender.activeShield > 0) return;
     const damage = 'damage' in attacker ? attacker.damage : (attacker as Troop).attackDamage;
     defender.health -= damage;
     const particleColor = 'team' in defender ? (defender.team === 'player' ? '#FF453A' : '#FFD60A') : '#A5A5A5';
