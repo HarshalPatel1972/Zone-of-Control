@@ -253,7 +253,9 @@ export class GameEngine {
     
     // Impact Particles
     const particleColor = 'team' in defender ? (defender.team === 'player' ? '#FF453A' : '#FFD60A') : '#A5A5A5';
-    this.spawnImpactParticles(defender.x + (defender.width ? defender.width/2 : 0), defender.y ?? CANVAS_HEIGHT - 120, particleColor);
+    const x = 'width' in defender ? defender.x + (defender as Castle).width / 2 : defender.x + (defender as Troop).size / 2;
+    const y = 'y' in defender ? (defender as any).y : CANVAS_HEIGHT - 120;
+    this.spawnImpactParticles(x, y, particleColor);
 
     if ('isTakingDamage' in defender) {
       (defender as Troop).isTakingDamage = true;
