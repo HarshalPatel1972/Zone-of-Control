@@ -40,6 +40,7 @@ export interface Troop {
   // Veteran System
   kills: number;
   rank: number; // 0 to 3
+  state: 'idle' | 'advancing' | 'retreating';
 }
 
 export interface Projectile {

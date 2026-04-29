@@ -83,6 +83,13 @@ export default function RoomPage() {
   const isOpponentVisible = gameState.troops.some(t => t.team === 'opponent' && t.x < playerVisionX + 600);
   const enemyGoldDisplay = isOpponentVisible ? `$${enemyGold}` : '???';
   const myStats = isHost ? gameState.stats.player : gameState.stats.opponent;
+  
+  const handleCommand = (cmd: 'charge' | 'retreat') => {
+    if (!isStarted) return;
+    engine.issueCommand(isHost ? 'player' : 'opponent', cmd);
+    if (!isTraining) sendSpawn(isHost ? 'player' : 'opponent', `cmd_${cmd}`);
+    setGameState(engine.getState());
+  };
 
   const handleEmote = (type: string) => {
     if (!isStarted) return;
@@ -175,6 +182,24 @@ export default function RoomPage() {
             onExit={handleExit}
           />
 
+          {/* Staging Commands */}
+          {isStarted && (
+            <div className="absolute bottom-10 left-10 flex flex-col gap-3 animate-fade-in pointer-events-auto">
+               <button
+                onClick={() => handleCommand('charge')}
+                className="px-8 py-4 bg-success text-white font-black uppercase tracking-widest rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(50,215,75,0.4)]"
+               >
+                 CHARGE
+               </button>
+               <button
+                onClick={() => handleCommand('retreat')}
+                className="px-8 py-4 bg-error text-white font-black uppercase tracking-widest rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(255,69,58,0.4)]"
+               >
+                 RETREAT
+               </button>
+            </div>
+          )}
+
           {/* Emote Wheel */}
           {isStarted && (
             <div className="absolute top-10 left-1/2 -translate-x-1/2 flex gap-4 animate-fade-in pointer-events-auto">
@@ -218,25 +243,33 @@ export default function RoomPage() {
       {/* Command Interface */}
       <div className="max-w-[1200px] w-full mt-10 grid grid-cols-2 md:grid-cols-4 gap-6 px-4 animate-fade-in">
         {[
-          { type: 'basic', name: 'Knight', asset: 'knight.png', cost: TROOP_STATS.BASIC.cost },
-          { type: 'archer', name: 'Archer', asset: 'archer.png', cost: TROOP_STATS.ARCHER.cost },
-          { type: 'berserker', name: 'Slayer', asset: 'berserker.png', cost: TROOP_STATS.BERSERKER.cost },
-          { type: 'hero', name: 'HERO', asset: 'knight.png', cost: TROOP_STATS.HERO.cost },
-        ].map((unit) => (
-          <button
-            key={unit.type}
-            onClick={() => handleSpawn(unit.type as TroopType)}
-            disabled={!isStarted || myGold < unit.cost}
-            className="glass-button h-40 flex flex-col items-center justify-center gap-3 group relative overflow-hidden disabled:opacity-20 disabled:grayscale transition-all duration-500 rounded-3xl"
-          >
-            <div className="absolute inset-0 bg-gold/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            <img src={`/assets/${unit.asset}`} className="w-20 h-20 object-contain drop-shadow-xl group-hover:scale-110 transition-transform duration-500" />
-            <div className="text-center">
-              <span className="block text-sm font-bold uppercase tracking-widest text-white/80 group-hover:text-white">{unit.name}</span>
-              <span className="text-[10px] text-gold font-black tracking-[0.2em]">${unit.cost}</span>
-            </div>
-          </button>
-        ))}
+          { type: 'basic', name: 'Knight', asset: 'knight.png', cost: TROOP_STATS.BASIC.cost, max: TROOP_STATS.BASIC.maxCount },
+          { type: 'archer', name: 'Archer', asset: 'archer.png', cost: TROOP_STATS.ARCHER.cost, max: TROOP_STATS.ARCHER.maxCount },
+          { type: 'berserker', name: 'Slayer', asset: 'berserker.png', cost: TROOP_STATS.BERSERKER.cost, max: TROOP_STATS.BERSERKER.maxCount },
+          { type: 'hero', name: 'HERO', asset: 'knight.png', cost: TROOP_STATS.HERO.cost, max: TROOP_STATS.HERO.maxCount },
+        ].map((unit) => {
+          const currentCount = gameState.troops.filter(t => t.team === (isHost ? 'player' : 'opponent') && t.type === unit.type).length;
+          const isAtMax = currentCount >= unit.max;
+
+          return (
+            <button
+              key={unit.type}
+              onClick={() => handleSpawn(unit.type as TroopType)}
+              disabled={!isStarted || myGold < unit.cost || isAtMax}
+              className="glass-button h-40 flex flex-col items-center justify-center gap-3 group relative overflow-hidden disabled:opacity-20 disabled:grayscale transition-all duration-500 rounded-3xl"
+            >
+              <div className="absolute inset-0 bg-gold/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <img src={`/assets/${unit.asset}`} className="w-20 h-20 object-contain drop-shadow-xl group-hover:scale-110 transition-transform duration-500" />
+              <div className="text-center">
+                <span className="block text-sm font-bold uppercase tracking-widest text-white/80 group-hover:text-white">{unit.name}</span>
+                <div className="flex items-center justify-center gap-2">
+                    <span className="text-[10px] text-gold font-black tracking-[0.2em]">${unit.cost}</span>
+                    <span className={`text-[10px] font-black ${isAtMax ? 'text-error' : 'text-white/30'}`}>[{currentCount}/{unit.max}]</span>
+                </div>
+              </div>
+            </button>
+          );
+        })}
 
         <button
           onClick={handleUpgrade}

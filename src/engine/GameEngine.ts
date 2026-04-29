@@ -5,10 +5,10 @@ export const CANVAS_HEIGHT = 900;
 export const VIEW_WIDTH = 1600;
 
 export const TROOP_STATS = {
-  BASIC: { cost: 20, health: 150, attackDamage: 12, attackRange: 50, attackCooldown: 800, speed: 2.8, size: 80, asset: 'knight' },
-  ARCHER: { cost: 45, health: 100, attackDamage: 25, attackRange: 450, attackCooldown: 1500, speed: 2.2, size: 80, asset: 'archer' },
-  BERSERKER: { cost: 75, health: 400, attackDamage: 40, attackRange: 60, attackCooldown: 700, speed: 3.5, size: 100, asset: 'berserker' },
-  HERO: { cost: 300, health: 1200, attackDamage: 60, attackRange: 80, attackCooldown: 600, speed: 4.0, size: 120, asset: 'knight' }
+  BASIC: { cost: 20, health: 150, attackDamage: 12, attackRange: 50, attackCooldown: 800, speed: 2.8, size: 80, asset: 'knight', maxCount: 20 },
+  ARCHER: { cost: 45, health: 100, attackDamage: 25, attackRange: 450, attackCooldown: 1500, speed: 2.2, size: 80, asset: 'archer', maxCount: 15 },
+  BERSERKER: { cost: 75, health: 400, attackDamage: 40, attackRange: 60, attackCooldown: 700, speed: 3.5, size: 100, asset: 'berserker', maxCount: 10 },
+  HERO: { cost: 300, health: 1200, attackDamage: 60, attackRange: 80, attackCooldown: 600, speed: 4.0, size: 120, asset: 'knight', maxCount: 1 }
 };
 
 export const CASTLE_UPGRADES = {
@@ -60,9 +60,7 @@ export class GameEngine {
       cpuDifficulty: 'medium', weather: 'clear', weatherTimer: Date.now(),
       playerAbilities: { ...abilityInit }, opponentAbilities: { ...abilityInit },
       stats: { player: { ...statInit }, opponent: { ...statInit } },
-      cameraX: 0,
-      isAutoCamera: true,
-      lastManualScroll: 0
+      cameraX: 0, isAutoCamera: true, lastManualScroll: 0
     };
   }
 
@@ -102,10 +100,9 @@ export class GameEngine {
   public spawnTroop(team: Team, type: TroopType = 'basic') {
     const stats = TROOP_STATS[type.toUpperCase() as keyof typeof TROOP_STATS] || TROOP_STATS.BASIC;
     if (team === 'player' && this.state.gold < stats.cost) return;
-    if (type === 'hero') {
-      const existingHero = this.state.troops.find(t => t.team === team && t.type === 'hero');
-      if (existingHero) return;
-    }
+    const currentCount = this.state.troops.filter(t => t.team === team && t.type === type).length;
+    if (currentCount >= stats.maxCount) return;
+
     if (team === 'player') { this.state.gold -= stats.cost; this.playSound('spawn'); }
     this.createTroop(team, type);
   }
@@ -148,6 +145,12 @@ export class GameEngine {
 
   public spawnRemoteTroop(team: Team, type: TroopType = 'basic') { this.createTroop(team, type); }
 
+  public issueCommand(team: Team, command: 'charge' | 'retreat') {
+    this.state.troops.filter(t => t.team === team).forEach(t => {
+      t.state = command === 'charge' ? 'advancing' : 'retreating';
+    });
+  }
+
   private createTroop(team: Team, type: TroopType) {
     const stats = TROOP_STATS[type.toUpperCase() as keyof typeof TROOP_STATS] || TROOP_STATS.BASIC;
     const id = Math.random().toString(36).substr(2, 9);
@@ -158,7 +161,7 @@ export class GameEngine {
       health: stats.health, maxHealth: stats.health, secondaryHealth: stats.health,
       attackDamage: stats.attackDamage, attackRange: stats.attackRange, attackCooldown: stats.attackCooldown,
       lastAttackTime: 0, isAttacking: false, isTakingDamage: false, damageFlashTimer: 0,
-      bobbingTimer: Math.random() * Math.PI * 2, kills: 0, rank: 0
+      bobbingTimer: Math.random() * Math.PI * 2, kills: 0, rank: 0, state: 'idle'
     };
     this.state.troops.push(newTroop);
     this.state.stats[team].troopsSpawned++;
@@ -170,7 +173,6 @@ export class GameEngine {
     
     // 0. Camera Logic
     if (now - this.state.lastManualScroll > 3000) this.state.isAutoCamera = true;
-    
     if (this.state.isAutoCamera) {
         const playerTroops = this.state.troops.filter(t => t.team === 'player');
         const frontX = playerTroops.length > 0 ? Math.max(...playerTroops.map(t => t.x)) : 0;
@@ -259,25 +261,37 @@ export class GameEngine {
       if (troop.damageFlashTimer > 0) troop.damageFlashTimer--; else troop.isTakingDamage = false;
       
       const enemyCastle = troop.team === 'player' ? this.state.opponentCastle : this.state.playerCastle;
+      
+      // Range & Speed Modifiers
+      let currentRange = troop.attackRange;
+      if (this.state.weather === 'fog' && troop.type === 'archer') currentRange *= 0.6;
+      
+      let currentSpeed = 0;
+      if (troop.state === 'advancing') {
+          currentSpeed = troop.speed;
+          if (this.state.weather === 'rain') currentSpeed *= 0.75;
+      } else if (troop.state === 'retreating') {
+          const homeX = troop.team === 'player' ? this.state.playerCastle.x + this.state.playerCastle.width : this.state.opponentCastle.x;
+          if (Math.abs(troop.x - homeX) > 20) {
+              currentSpeed = troop.team === 'player' ? -Math.abs(troop.speed) : Math.abs(troop.speed);
+          } else {
+              troop.state = 'idle';
+          }
+      }
+
       const distToCastle = Math.abs(troop.x - (troop.team === 'player' ? enemyCastle.x : enemyCastle.x + enemyCastle.width));
-      if (distToCastle <= troop.attackRange) { isBlocked = true; target = enemyCastle; }
+      if (distToCastle <= currentRange) { isBlocked = true; target = enemyCastle; }
       
       this.state.troops.forEach((other) => {
         if (troop.id === other.id) return;
         const dist = troop.team === 'player' ? other.x - troop.x : troop.x - other.x;
         if (troop.team !== other.team) {
-          if (dist > 0 && dist < troop.attackRange) { isBlocked = true; target = other; }
+          if (dist > 0 && dist < currentRange) { isBlocked = true; target = other; }
         }
       });
 
-      // Weather Modifiers
-      let currentSpeed = troop.speed;
-      if (this.state.weather === 'rain') currentSpeed *= 0.75;
-      let currentRange = troop.attackRange;
-      if (this.state.weather === 'fog' && troop.type === 'archer') currentRange *= 0.6;
-
-      if (!isBlocked) troop.x += currentSpeed;
-      else if (target) {
+      if (!isBlocked && troop.state !== 'idle') troop.x += currentSpeed;
+      else if (target && troop.state === 'advancing') {
         if (now - troop.lastAttackTime >= troop.attackCooldown) {
           if (troop.type === 'archer') this.spawnProjectile(troop, target);
           else this.dealDamage(troop, target);
@@ -327,61 +341,40 @@ export class GameEngine {
 
     // Expert Logic
     if (difficulty === 'hard') {
-        // 1. Defend Castle
         const nearbyThreats = playerTroops.filter(t => t.x > castle.x - 400);
-        if (nearbyThreats.length > 2 && gold >= 20) {
-            this.createTroop('opponent', 'basic');
-            this.state.opponentGold -= 20;
-        }
-        if (castle.health < castle.maxHealth * 0.3 && now - this.state.opponentAbilities.shield.lastUsed > 30000) {
-            this.useAbility('opponent', 'shield');
-        }
-
-        // 2. Offense & Counters
+        if (nearbyThreats.length > 2 && gold >= 20) { this.createTroop('opponent', 'basic'); this.state.opponentGold -= 20; }
+        if (castle.health < castle.maxHealth * 0.3 && now - this.state.opponentAbilities.shield.lastUsed > 30000) this.useAbility('opponent', 'shield');
+        
         if (gold > 100) {
             const playerArchers = playerTroops.filter(t => t.type === 'archer').length;
-            if (playerArchers > 2) {
-                this.createTroop('opponent', 'berserker');
-                this.state.opponentGold -= 75;
-            } else if (playerTroops.length > 5) {
-                this.useAbility('opponent', 'meteor');
-            } else {
+            if (playerArchers > 2) { this.createTroop('opponent', 'berserker'); this.state.opponentGold -= 75; }
+            else if (playerTroops.length > 5) this.useAbility('opponent', 'meteor');
+            else {
                 const type = Math.random() < 0.7 ? 'basic' : 'archer';
                 const cost = TROOP_STATS[type.toUpperCase() as keyof typeof TROOP_STATS].cost;
                 if (gold >= cost) { this.createTroop('opponent', type); this.state.opponentGold -= cost; }
             }
         }
-
-        // 3. Objectives
-        if (this.state.objective.owner !== 'opponent' && gold > 200 && opponentTroops.length < 3) {
-            this.createTroop('opponent', 'berserker');
-            this.state.opponentGold -= 75;
-        }
-
-        // 4. Hero Spawn
-        if (gold > 400 && !opponentTroops.find(t => t.type === 'hero')) {
-            this.createTroop('opponent', 'hero');
-            this.state.opponentGold -= 300;
-        }
+        if (this.state.objective.owner !== 'opponent' && gold > 200 && opponentTroops.length < 3) { this.createTroop('opponent', 'berserker'); this.state.opponentGold -= 75; }
+        if (gold > 400 && !opponentTroops.find(t => t.type === 'hero')) { this.createTroop('opponent', 'hero'); this.state.opponentGold -= 300; }
+        
+        // AI commands
+        if (opponentTroops.filter(t => t.state === 'idle').length > 3) this.issueCommand('opponent', 'charge');
+        if (nearbyThreats.length > 5 && opponentTroops.length < 2) this.issueCommand('opponent', 'retreat');
 
     } else {
-        // Standard AI
         const decision = Math.random();
         let spawnChance = 0.4;
-        let upgradeChance = 0.05;
-        if (difficulty === 'easy') { spawnChance = 0.15; upgradeChance = 0.02; }
-        
+        if (difficulty === 'easy') spawnChance = 0.15;
         if (playerTroops.length > opponentTroops.length + 2) spawnChance += 0.3;
-        if (gold > 600 && this.state.opponentCastle.level < 3) upgradeChance += 0.2;
-
-        if (decision < upgradeChance && this.state.opponentCastle.level < 3) this.upgradeCastle('opponent');
-        else if (decision < spawnChance) {
+        if (decision < spawnChance) {
           let type: TroopType = 'basic';
           if (playerTroops.length > 3) type = 'archer';
           if (gold > 150 && Math.random() < 0.3) type = 'berserker';
           const stats = TROOP_STATS[type.toUpperCase() as keyof typeof TROOP_STATS] || TROOP_STATS.BASIC;
           if (this.state.opponentGold >= stats.cost) { this.state.opponentGold -= stats.cost; this.createTroop('opponent', type); }
         }
+        if (opponentTroops.filter(t => t.state === 'idle').length > 0) this.issueCommand('opponent', 'charge');
     }
     this.state.lastAiDecisionTime = now;
   }
@@ -437,32 +430,19 @@ export class GameEngine {
 
   public render(ctx: CanvasRenderingContext2D) {
     ctx.save();
-    
-    // Screen Shake
     if (this.state.screenShake > 0) ctx.translate((Math.random() - 0.5) * this.state.screenShake, (Math.random() - 0.5) * this.state.screenShake);
-    
-    // Background (Tiled or Stretched)
     if (this.assets.bg.complete) {
-        // Draw background multiple times for parallax/scrolling
-        for (let i = 0; i < 3; i++) {
-            ctx.drawImage(this.assets.bg, (i * CANVAS_WIDTH/2) - this.state.cameraX * 0.5, 0, CANVAS_WIDTH/2, CANVAS_HEIGHT);
-        }
+        for (let i = 0; i < 3; i++) ctx.drawImage(this.assets.bg, (i * CANVAS_WIDTH/2) - this.state.cameraX * 0.5, 0, CANVAS_WIDTH/2, CANVAS_HEIGHT);
     } else {
         ctx.fillStyle = '#09090b'; ctx.fillRect(0, 0, VIEW_WIDTH, CANVAS_HEIGHT);
     }
-
     ctx.translate(-this.state.cameraX, 0);
-
     this.drawObjective(ctx);
     this.drawCastle(ctx, this.state.playerCastle);
     this.drawCastle(ctx, this.state.opponentCastle);
     
-    // Vision / Fog of War Logic
     const playerVisionX = Math.max(...this.state.troops.filter(t => t.team === 'player').map(t => t.x), 400);
-    this.state.troops.forEach(t => {
-      if (t.team === 'opponent' && t.x > playerVisionX + 500) return;
-      this.drawTroop(ctx, t);
-    });
+    this.state.troops.forEach(t => { if (t.team === 'opponent' && t.x > playerVisionX + 500) return; this.drawTroop(ctx, t); });
     this.state.projectiles.forEach(p => this.drawProjectile(ctx, p));
     this.state.particles.forEach(p => this.drawParticle(ctx, p));
     this.state.emotes.forEach(e => this.drawEmote(ctx, e));
