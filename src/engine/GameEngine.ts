@@ -60,7 +60,9 @@ export class GameEngine {
       cpuDifficulty: 'medium', weather: 'clear', weatherTimer: Date.now(),
       playerAbilities: { ...abilityInit }, opponentAbilities: { ...abilityInit },
       stats: { player: { ...statInit }, opponent: { ...statInit } },
-      cameraX: 0
+      cameraX: 0,
+      isAutoCamera: true,
+      lastManualScroll: 0
     };
   }
 
@@ -75,6 +77,11 @@ export class GameEngine {
   public setMultiplayer(enabled: boolean) { this.state.isMultiplayer = enabled; }
   public setCpuDifficulty(diff: CpuDifficulty) { this.state.cpuDifficulty = diff; }
   public getState(): GameState { return { ...this.state }; }
+  public setCameraX(x: number) { 
+    this.state.cameraX = Math.max(0, Math.min(CANVAS_WIDTH - 1600, x));
+    this.state.isAutoCamera = false;
+    this.state.lastManualScroll = Date.now();
+  }
 
   public upgradeCastle(team: Team) {
     const castle = team === 'player' ? this.state.playerCastle : this.state.opponentCastle;
@@ -162,10 +169,14 @@ export class GameEngine {
     const now = Date.now();
     
     // 0. Camera Logic
-    const playerTroops = this.state.troops.filter(t => t.team === 'player');
-    const frontX = playerTroops.length > 0 ? Math.max(...playerTroops.map(t => t.x)) : 0;
-    const targetCamX = Math.max(0, Math.min(CANVAS_WIDTH - VIEW_WIDTH, frontX - VIEW_WIDTH / 2));
-    this.state.cameraX += (targetCamX - this.state.cameraX) * 0.1;
+    if (now - this.state.lastManualScroll > 3000) this.state.isAutoCamera = true;
+    
+    if (this.state.isAutoCamera) {
+        const playerTroops = this.state.troops.filter(t => t.team === 'player');
+        const frontX = playerTroops.length > 0 ? Math.max(...playerTroops.map(t => t.x)) : 0;
+        const targetCamX = Math.max(0, Math.min(CANVAS_WIDTH - 1600, frontX - 800));
+        this.state.cameraX += (targetCamX - this.state.cameraX) * 0.1;
+    }
 
     // 1. Smooth Health Bars & Shields
     const smoothFactor = 0.1;

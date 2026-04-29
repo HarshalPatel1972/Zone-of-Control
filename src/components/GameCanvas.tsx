@@ -9,6 +9,8 @@ interface GameCanvasProps {
 
 export const GameCanvas: React.FC<GameCanvasProps> = ({ engine }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const isDragging = useRef(false);
+  const lastX = useRef(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -32,15 +34,39 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ engine }) => {
     };
   }, [engine]);
 
+  const handleMouseDown = (e: React.MouseEvent) => {
+    isDragging.current = true;
+    lastX.current = e.clientX;
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging.current) return;
+    const dx = e.clientX - lastX.current;
+    // Scale the movement based on the ratio between canvas internal size and display size
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (rect) {
+        const scaleX = 1600 / rect.width;
+        engine.setCameraX(engine.getState().cameraX - dx * scaleX);
+    }
+    lastX.current = e.clientX;
+  };
+
+  const handleMouseUp = () => {
+    isDragging.current = false;
+  };
+
   return (
     <div className="relative w-full h-full overflow-hidden bg-[#09090b]">
       <canvas
         ref={canvasRef}
         width={1600}
         height={900}
-        className="w-full h-full object-contain"
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        className="w-full h-full object-contain cursor-grab active:cursor-grabbing"
       />
     </div>
   );
 };
-
