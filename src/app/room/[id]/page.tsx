@@ -69,8 +69,16 @@ export default function RoomPage() {
     setGameState(engine.getState());
   };
 
+  const handleAbility = (type: string) => {
+    if (!isStarted) return;
+    engine.useAbility(isHost ? 'player' : 'opponent', type as any);
+    if (!isTraining) sendSpawn(isHost ? 'player' : 'opponent', `ability_${type}`);
+    setGameState(engine.getState());
+  };
+
   const myGold = isHost ? gameState.gold : gameState.opponentGold;
   const enemyGold = isHost ? gameState.opponentGold : gameState.gold;
+  const myStats = isHost ? gameState.stats.player : gameState.stats.opponent;
 
   return (
     <main className="min-h-screen bg-[#09090b] p-4 sm:p-8 flex flex-col items-center overflow-hidden font-inter">
@@ -86,6 +94,11 @@ export default function RoomPage() {
           <div className="space-y-1">
             <span className="block text-[10px] uppercase tracking-[0.3em] text-white/30 font-black">Mode</span>
             <span className="text-lg font-mono font-bold text-success">{isTraining ? 'TRAINING' : 'MULTIPLAYER'}</span>
+          </div>
+          <div className="h-10 w-px bg-white/5"></div>
+          <div className="space-y-1">
+            <span className="block text-[10px] uppercase tracking-[0.3em] text-white/30 font-black">Confirmed Kills</span>
+            <span className="text-lg font-mono font-bold text-error">{myStats.kills}</span>
           </div>
         </div>
 
@@ -123,6 +136,30 @@ export default function RoomPage() {
             onRestart={() => engine.reset()} 
             onExit={handleExit}
           />
+
+          {/* Quick-Abilities Floating Bar */}
+          {isStarted && (
+            <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex gap-4 animate-fade-in pointer-events-auto">
+               {[
+                 { id: 'meteor', name: 'Meteor', color: 'text-error' },
+                 { id: 'heal', name: 'Heal', color: 'text-success' },
+                 { id: 'shield', name: 'Shield', color: 'text-gold' }
+               ].map(ability => {
+                 const data = (isHost ? gameState.playerAbilities : gameState.opponentAbilities)[ability.id as any];
+                 const isReady = Date.now() - data.lastUsed >= data.cooldown;
+                 return (
+                   <button
+                    key={ability.id}
+                    onClick={() => handleAbility(ability.id)}
+                    disabled={!isReady}
+                    className={`px-6 py-2 glass-panel rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${isReady ? `${ability.color} border-white/20 hover:scale-105 active:scale-95` : 'opacity-20 scale-90'}`}
+                   >
+                     {ability.name}
+                   </button>
+                 )
+               })}
+            </div>
+          )}
         </div>
       </div>
 
@@ -137,7 +174,6 @@ export default function RoomPage() {
             key={unit.type}
             onClick={() => handleSpawn(unit.type as TroopType)}
             disabled={!isStarted || myGold < unit.cost}
-
             className="glass-button h-40 flex flex-col items-center justify-center gap-3 group relative overflow-hidden disabled:opacity-20 disabled:grayscale transition-all duration-500 rounded-3xl"
           >
             <div className="absolute inset-0 bg-gold/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
@@ -151,7 +187,7 @@ export default function RoomPage() {
 
         <button
           onClick={handleUpgrade}
-          disabled={!isGameStarted || (isHost ? gameState.playerCastle.level >= 3 : gameState.opponentCastle.level >= 3)}
+          disabled={!isStarted || (isHost ? gameState.playerCastle.level >= 3 : gameState.opponentCastle.level >= 3)}
           className="glass-button h-40 flex flex-col items-center justify-center gap-4 group relative overflow-hidden disabled:opacity-20 transition-all duration-500 rounded-3xl"
         >
           <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
@@ -172,4 +208,5 @@ export default function RoomPage() {
     </main>
   );
 }
+
 

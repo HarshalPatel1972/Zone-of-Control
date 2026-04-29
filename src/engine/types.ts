@@ -1,5 +1,8 @@
 export type Team = 'player' | 'opponent';
 export type CpuDifficulty = 'easy' | 'medium' | 'hard';
+export type WeatherType = 'clear' | 'rain' | 'fog' | 'storm';
+export type AbilityType = 'meteor' | 'heal' | 'shield';
+export type TroopType = 'basic' | 'archer' | 'berserker' | 'hero' | 'fire_archer' | 'crossman';
 
 export interface Castle {
   health: number;
@@ -10,9 +13,10 @@ export interface Castle {
   height: number;
   team: Team;
   level: number;
+  turretLevel: number;
+  lastTurretFire: number;
+  activeShield: number; // duration left
 }
-
-export type TroopType = 'basic' | 'archer' | 'berserker';
 
 export interface Troop {
   id: string;
@@ -33,6 +37,9 @@ export interface Troop {
   isTakingDamage: boolean;
   damageFlashTimer: number;
   bobbingTimer: number;
+  // Veteran System
+  kills: number;
+  rank: number; // 0 to 3
 }
 
 export interface Projectile {
@@ -43,11 +50,8 @@ export interface Projectile {
   vy: number;
   team: Team;
   damage: number;
-  targetId?: string;
-  type: 'arrow';
+  type: 'arrow' | 'fire_arrow' | 'bolt' | 'meteor';
 }
-
-export type GameStatus = 'playing' | 'victory' | 'defeat';
 
 export interface Particle {
   id: string;
@@ -60,19 +64,50 @@ export interface Particle {
   life: number;
 }
 
+export interface NeutralObjective {
+  x: number;
+  y: number;
+  radius: number;
+  control: number; // -100 (opponent) to 100 (player)
+  owner: Team | 'neutral';
+}
+
+export interface MatchStats {
+  goldEarned: number;
+  troopsSpawned: number;
+  kills: number;
+  damageDealt: number;
+}
+
+export interface Emote {
+  id: string;
+  team: Team;
+  type: string;
+  life: number;
+  x: number;
+  y: number;
+}
+
 export interface GameState {
   playerCastle: Castle;
   opponentCastle: Castle;
   troops: Troop[];
   projectiles: Projectile[];
   particles: Particle[];
+  emotes: Emote[];
+  objective: NeutralObjective;
   gold: number;
   opponentGold: number;
   lastIncomeTime: number;
   lastAiDecisionTime: number;
-  status: GameStatus;
+  status: 'playing' | 'victory' | 'defeat';
   isPaused: boolean;
   isMultiplayer: boolean;
   screenShake: number;
   cpuDifficulty: CpuDifficulty;
+  weather: WeatherType;
+  weatherTimer: number;
+  playerAbilities: Record<AbilityType, { cooldown: number, lastUsed: number }>;
+  opponentAbilities: Record<AbilityType, { cooldown: number, lastUsed: number }>;
+  stats: Record<Team, MatchStats>;
 }
