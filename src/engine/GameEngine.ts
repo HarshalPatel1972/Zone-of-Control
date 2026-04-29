@@ -42,9 +42,10 @@ export class GameEngine {
 
   private getInitialState(): GameState {
     return {
-      playerCastle: { health: 1000, maxHealth: 1000, x: 100, width: 250, height: 400, team: 'player', level: 1 },
-      opponentCastle: { health: 1000, maxHealth: 1000, x: CANVAS_WIDTH - 350, width: 250, height: 400, team: 'opponent', level: 1 },
+      playerCastle: { health: 1000, maxHealth: 1000, secondaryHealth: 1000, x: 100, width: 250, height: 400, team: 'player', level: 1 },
+      opponentCastle: { health: 1000, maxHealth: 1000, secondaryHealth: 1000, x: CANVAS_WIDTH - 350, width: 250, height: 400, team: 'opponent', level: 1 },
       troops: [],
+      projectiles: [],
       particles: [],
       gold: 150,
       opponentGold: 150,
@@ -54,16 +55,20 @@ export class GameEngine {
       isPaused: false,
       isMultiplayer: false,
       screenShake: 0,
+      cpuDifficulty: 'medium',
     };
   }
 
   public reset() {
     const isMulti = this.state.isMultiplayer;
+    const diff = this.state.cpuDifficulty;
     this.state = this.getInitialState();
     this.state.isMultiplayer = isMulti;
+    this.state.cpuDifficulty = diff;
   }
 
   public setMultiplayer(enabled: boolean) { this.state.isMultiplayer = enabled; }
+  public setCpuDifficulty(diff: CpuDifficulty) { this.state.cpuDifficulty = diff; }
   public getState(): GameState { return { ...this.state }; }
 
   public upgradeCastle(team: Team) {
@@ -78,6 +83,7 @@ export class GameEngine {
     castle.level = nextLevel;
     castle.maxHealth += upgrade.healthBoost;
     castle.health += upgrade.healthBoost;
+    castle.secondaryHealth = castle.health;
     this.playSound('spawn');
   }
 
@@ -97,9 +103,10 @@ export class GameEngine {
     const newTroop: Troop = {
       id, type, x: team === 'player' ? castle.x + castle.width : castle.x, y: CANVAS_HEIGHT - 120,
       speed: team === 'player' ? stats.speed : -stats.speed, team, size: stats.size,
-      color: '', health: stats.health, maxHealth: stats.health, attackDamage: stats.attackDamage,
-      attackRange: stats.attackRange, attackCooldown: stats.attackCooldown,
+      health: stats.health, maxHealth: stats.health, secondaryHealth: stats.health,
+      attackDamage: stats.attackDamage, attackRange: stats.attackRange, attackCooldown: stats.attackCooldown,
       lastAttackTime: 0, isAttacking: false, isTakingDamage: false, damageFlashTimer: 0,
+      bobbingTimer: Math.random() * Math.PI * 2,
     };
     this.state.troops.push(newTroop);
   }
@@ -107,6 +114,18 @@ export class GameEngine {
   public update() {
     if (this.state.isPaused) return;
     const now = Date.now();
+    
+    // Smooth Health Bars
+    const smoothFactor = 0.1;
+    [this.state.playerCastle, this.state.opponentCastle].forEach(c => {
+      if (c.secondaryHealth > c.health) c.secondaryHealth -= (c.secondaryHealth - c.health) * smoothFactor;
+      else c.secondaryHealth = c.health;
+    });
+    this.state.troops.forEach(t => {
+      if (t.secondaryHealth > t.health) t.secondaryHealth -= (t.secondaryHealth - t.health) * smoothFactor;
+      else t.secondaryHealth = t.health;
+    });
+
     if (now - this.state.lastIncomeTime >= 1000) {
       const pL = this.state.playerCastle.level as 2 | 3;
       const oL = this.state.opponentCastle.level as 2 | 3;
@@ -114,40 +133,49 @@ export class GameEngine {
       this.state.opponentGold += 15 + (CASTLE_UPGRADES[oL]?.incomeBoost || 0);
       this.state.lastIncomeTime = now;
     }
+
     if (!this.state.isMultiplayer && this.state.status === 'playing' && now - this.state.lastAiDecisionTime >= 1500) {
-      const decision = Math.random();
-      if (decision < 0.1 && this.state.opponentCastle.level < 3) this.upgradeCastle('opponent');
-      else if (decision < 0.5) {
-        const types: TroopType[] = ['basic', 'archer', 'berserker'];
-        const type = types[Math.floor(Math.random() * types.length)];
-        const stats = TROOP_STATS[type.toUpperCase() as keyof typeof TROOP_STATS];
-        if (this.state.opponentGold >= stats.cost) { this.state.opponentGold -= stats.cost; this.createTroop('opponent', type); }
-      }
-      this.state.lastAiDecisionTime = now;
+      this.handleAiDecision(now);
     }
+
     if (this.state.screenShake > 0) { this.state.screenShake *= 0.85; if (this.state.screenShake < 0.1) this.state.screenShake = 0; }
+    
     this.state.particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.life -= 0.03; });
     this.state.particles = this.state.particles.filter(p => p.life > 0);
+
     this.state.troops.forEach((troop) => {
-      let isBlocked = false; let target: Troop | Castle | null = null;
+      let isBlocked = false; 
+      let target: Troop | Castle | null = null;
       troop.isAttacking = false;
+      troop.bobbingTimer += 0.15;
+      
       if (troop.damageFlashTimer > 0) troop.damageFlashTimer--; else troop.isTakingDamage = false;
+      
       const enemyCastle = troop.team === 'player' ? this.state.opponentCastle : this.state.playerCastle;
       const distToCastle = Math.abs(troop.x - (troop.team === 'player' ? enemyCastle.x : enemyCastle.x + enemyCastle.width));
+      
       if (distToCastle <= troop.attackRange) { isBlocked = true; target = enemyCastle; }
+      
       this.state.troops.forEach((other) => {
         if (troop.id === other.id) return;
         const dist = troop.team === 'player' ? other.x - troop.x : troop.x - other.x;
-        if (troop.team === other.team) { if (dist > 0 && dist < 40) isBlocked = true; }
-        else { if (dist > 0 && dist < troop.attackRange) { isBlocked = true; target = other; } }
+        // Only block if other is an enemy
+        if (troop.team !== other.team) {
+          if (dist > 0 && dist < troop.attackRange) { isBlocked = true; target = other; }
+        }
       });
+
       if (!isBlocked) troop.x += troop.speed;
       else if (target) {
         if (now - troop.lastAttackTime >= troop.attackCooldown) {
-          this.dealDamage(troop, target); troop.lastAttackTime = now; troop.isAttacking = true; this.playSound('clash');
+          this.dealDamage(troop, target); 
+          troop.lastAttackTime = now; 
+          troop.isAttacking = true; 
+          this.playSound('clash');
         }
       }
     });
+
     const deadTroops = this.state.troops.filter(t => t.health <= 0);
     deadTroops.forEach(t => this.spawnDeathParticles(t));
     this.state.troops = this.state.troops.filter(t => t.health > 0);
@@ -155,10 +183,38 @@ export class GameEngine {
     else if (this.state.playerCastle.health <= 0) { this.state.status = 'defeat'; this.state.isPaused = true; this.playSound('game_over'); }
   }
 
-  private dealDamage(attacker: Troop, defender: Troop | Castle) {
-    defender.health -= attacker.attackDamage;
-    if ('isTakingDamage' in defender) { (defender as Troop).isTakingDamage = true; (defender as Troop).damageFlashTimer = 5; }
-    else { this.state.screenShake = 20; }
+  private handleAiDecision(now: number) {
+    const decision = Math.random();
+    const difficulty = this.state.cpuDifficulty;
+    
+    // Difficulty modifiers
+    let spawnChance = 0.5;
+    let upgradeChance = 0.1;
+    if (difficulty === 'easy') { spawnChance = 0.2; upgradeChance = 0.05; }
+    if (difficulty === 'hard') { spawnChance = 0.8; upgradeChance = 0.2; }
+
+    if (decision < upgradeChance && this.state.opponentCastle.level < 3) {
+      this.upgradeCastle('opponent');
+    } else if (decision < spawnChance) {
+      const types: TroopType[] = ['basic', 'archer', 'berserker'];
+      const type = types[Math.floor(Math.random() * types.length)];
+      const stats = TROOP_STATS[type.toUpperCase() as keyof typeof TROOP_STATS];
+      if (this.state.opponentGold >= stats.cost) {
+        this.state.opponentGold -= stats.cost;
+        this.createTroop('opponent', type);
+      }
+    }
+    this.state.lastAiDecisionTime = now;
+  }
+
+  private dealDamage(attacker: Troop | Projectile, defender: Troop | Castle) {
+    defender.health -= attacker.damage ?? (attacker as Troop).attackDamage;
+    if ('isTakingDamage' in defender) {
+      (defender as Troop).isTakingDamage = true;
+      (defender as Troop).damageFlashTimer = 5;
+    } else {
+      this.state.screenShake = 15;
+    }
   }
 
   private spawnDeathParticles(troop: Troop) {
