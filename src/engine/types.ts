@@ -88,6 +88,8 @@ export interface Emote {
   y: number;
 }
 
+export type GameStatus = 'playing' | 'victory' | 'defeat';
+
 export interface GameState {
   playerCastle: Castle;
   opponentCastle: Castle;
@@ -100,7 +102,7 @@ export interface GameState {
   opponentGold: number;
   lastIncomeTime: number;
   lastAiDecisionTime: number;
-  status: 'playing' | 'victory' | 'defeat';
+  status: GameStatus;
   isPaused: boolean;
   isMultiplayer: boolean;
   screenShake: number;
