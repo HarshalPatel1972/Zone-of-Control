@@ -78,6 +78,10 @@ export default function RoomPage() {
 
   const myGold = isHost ? gameState.gold : gameState.opponentGold;
   const enemyGold = isHost ? gameState.opponentGold : gameState.gold;
+
+  const playerVisionX = Math.max(...gameState.troops.filter(t => t.team === 'player').map(t => t.x), 400);
+  const isOpponentVisible = gameState.troops.some(t => t.team === 'opponent' && t.x < playerVisionX + 600);
+  const enemyGoldDisplay = isOpponentVisible ? `$${enemyGold}` : '???';
   const myStats = isHost ? gameState.stats.player : gameState.stats.opponent;
 
   return (
@@ -110,7 +114,7 @@ export default function RoomPage() {
             <div className="h-16 w-px bg-white/5"></div>
             <div className="text-center">
                 <span className="block text-[10px] uppercase tracking-[0.3em] text-white/30 font-black mb-1">Opposition</span>
-                <span className="text-3xl font-bold text-white/20 tracking-tighter">${enemyGold}</span>
+                <span className="text-3xl font-bold text-white/20 tracking-tighter">{enemyGoldDisplay}</span>
             </div>
         </div>
 
@@ -169,6 +173,7 @@ export default function RoomPage() {
           { type: 'basic', name: 'Knight', asset: 'knight.png', cost: TROOP_STATS.BASIC.cost },
           { type: 'archer', name: 'Archer', asset: 'archer.png', cost: TROOP_STATS.ARCHER.cost },
           { type: 'berserker', name: 'Slayer', asset: 'berserker.png', cost: TROOP_STATS.BERSERKER.cost },
+          { type: 'hero', name: 'HERO', asset: 'knight.png', cost: TROOP_STATS.HERO.cost },
         ].map((unit) => (
           <button
             key={unit.type}

@@ -6,8 +6,10 @@ export const CANVAS_HEIGHT = 900;
 export const TROOP_STATS = {
   BASIC: { cost: 20, health: 150, attackDamage: 12, attackRange: 50, attackCooldown: 800, speed: 2.8, size: 80, asset: 'knight' },
   ARCHER: { cost: 45, health: 100, attackDamage: 25, attackRange: 450, attackCooldown: 1500, speed: 2.2, size: 80, asset: 'archer' },
-  BERSERKER: { cost: 75, health: 400, attackDamage: 40, attackRange: 60, attackCooldown: 700, speed: 3.5, size: 100, asset: 'berserker' }
+  BERSERKER: { cost: 75, health: 400, attackDamage: 40, attackRange: 60, attackCooldown: 700, speed: 3.5, size: 100, asset: 'berserker' },
+  HERO: { cost: 300, health: 1200, attackDamage: 60, attackRange: 80, attackCooldown: 600, speed: 4.0, size: 120, asset: 'knight' }
 };
+
 
 export const CASTLE_UPGRADES = {
   2: { cost: 200, healthBoost: 500, incomeBoost: 5 },
@@ -92,6 +94,10 @@ export class GameEngine {
   public spawnTroop(team: Team, type: TroopType = 'basic') {
     const stats = TROOP_STATS[type.toUpperCase() as keyof typeof TROOP_STATS] || TROOP_STATS.BASIC;
     if (team === 'player' && this.state.gold < stats.cost) return;
+    if (type === 'hero') {
+      const existingHero = this.state.troops.find(t => t.team === team && t.type === 'hero');
+      if (existingHero) return;
+    }
     if (team === 'player') { this.state.gold -= stats.cost; this.playSound('spawn'); }
     this.createTroop(team, type);
   }
@@ -355,9 +361,25 @@ export class GameEngine {
     this.drawObjective(ctx);
     this.drawCastle(ctx, this.state.playerCastle);
     this.drawCastle(ctx, this.state.opponentCastle);
-    this.state.troops.forEach(t => this.drawTroop(ctx, t));
+    
+    // Vision / Fog of War Logic
+    const playerVisionX = Math.max(...this.state.troops.filter(t => t.team === 'player').map(t => t.x), 400);
+    
+    this.state.troops.forEach(t => {
+      if (t.team === 'opponent' && t.x > playerVisionX + 500) return; // Hidden in fog
+      this.drawTroop(ctx, t);
+    });
+    
     this.state.projectiles.forEach(p => this.drawProjectile(ctx, p));
     this.state.particles.forEach(p => this.drawParticle(ctx, p));
+    
+    // Draw Fog Overlay
+    const fogGrad = ctx.createLinearGradient(playerVisionX + 300, 0, playerVisionX + 600, 0);
+    fogGrad.addColorStop(0, 'rgba(0,0,0,0)');
+    fogGrad.addColorStop(1, 'rgba(0,0,0,0.8)');
+    ctx.fillStyle = fogGrad;
+    ctx.fillRect(playerVisionX + 300, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
     this.drawWeather(ctx);
     ctx.restore();
   }
