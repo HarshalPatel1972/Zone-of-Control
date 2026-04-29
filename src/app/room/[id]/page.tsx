@@ -84,6 +84,13 @@ export default function RoomPage() {
   const enemyGoldDisplay = isOpponentVisible ? `$${enemyGold}` : '???';
   const myStats = isHost ? gameState.stats.player : gameState.stats.opponent;
 
+  const handleEmote = (type: string) => {
+    if (!isStarted) return;
+    engine.triggerEmote(isHost ? 'player' : 'opponent', type);
+    if (!isTraining) sendSpawn(isHost ? 'player' : 'opponent', `emote_${type}`);
+    setGameState(engine.getState());
+  };
+
   return (
     <main className="min-h-screen bg-[#09090b] p-4 sm:p-8 flex flex-col items-center overflow-hidden font-inter">
       
@@ -140,6 +147,21 @@ export default function RoomPage() {
             onRestart={() => engine.reset()} 
             onExit={handleExit}
           />
+
+          {/* Emote Wheel */}
+          {isStarted && (
+            <div className="absolute top-10 left-1/2 -translate-x-1/2 flex gap-4 animate-fade-in pointer-events-auto">
+               {['⚔️', '🛡️', '🔥', '👑'].map(emoji => (
+                 <button
+                  key={emoji}
+                  onClick={() => handleEmote(emoji)}
+                  className="w-12 h-12 flex items-center justify-center glass-panel rounded-full text-xl hover:scale-110 active:scale-90 transition-all border-white/10"
+                 >
+                   {emoji}
+                 </button>
+               ))}
+            </div>
+          )}
 
           {/* Quick-Abilities Floating Bar */}
           {isStarted && (
