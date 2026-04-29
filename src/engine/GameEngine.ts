@@ -308,28 +308,70 @@ export class GameEngine {
   }
 
   private handleAiDecision(now: number) {
-    const decision = Math.random();
     const difficulty = this.state.cpuDifficulty;
-    const playerTroopCount = this.state.troops.filter(t => t.team === 'player').length;
-    const opponentTroopCount = this.state.troops.filter(t => t.team === 'opponent').length;
+    const playerTroops = this.state.troops.filter(t => t.team === 'player');
+    const opponentTroops = this.state.troops.filter(t => t.team === 'opponent');
     const gold = this.state.opponentGold;
+    const castle = this.state.opponentCastle;
 
-    let spawnChance = 0.4;
-    let upgradeChance = 0.05;
-    if (difficulty === 'easy') { spawnChance = 0.15; upgradeChance = 0.02; }
-    if (difficulty === 'hard') { spawnChance = 0.7; upgradeChance = 0.15; }
-    if (playerTroopCount > opponentTroopCount + 2) spawnChance += 0.3;
-    if (gold > 600 && this.state.opponentCastle.level < 3) upgradeChance += 0.2;
+    // Expert Logic
+    if (difficulty === 'hard') {
+        // 1. Defend Castle
+        const nearbyThreats = playerTroops.filter(t => t.x > castle.x - 400);
+        if (nearbyThreats.length > 2 && gold >= 20) {
+            this.createTroop('opponent', 'basic');
+            this.state.opponentGold -= 20;
+        }
+        if (castle.health < castle.maxHealth * 0.3 && now - this.state.opponentAbilities.shield.lastUsed > 30000) {
+            this.useAbility('opponent', 'shield');
+        }
 
-    if (decision < upgradeChance && this.state.opponentCastle.level < 3) this.upgradeCastle('opponent');
-    else if (decision < spawnChance) {
-      let type: TroopType = 'basic';
-      if (playerTroopCount > 3) type = 'archer';
-      if (gold > 150 && Math.random() < 0.3) type = 'berserker';
-      const stats = TROOP_STATS[type.toUpperCase() as keyof typeof TROOP_STATS] || TROOP_STATS.BASIC;
-      if (this.state.opponentGold >= stats.cost) { this.state.opponentGold -= stats.cost; this.createTroop('opponent', type); }
+        // 2. Offense & Counters
+        if (gold > 100) {
+            const playerArchers = playerTroops.filter(t => t.type === 'archer').length;
+            if (playerArchers > 2) {
+                this.createTroop('opponent', 'berserker');
+                this.state.opponentGold -= 75;
+            } else if (playerTroops.length > 5) {
+                this.useAbility('opponent', 'meteor');
+            } else {
+                const type = Math.random() < 0.7 ? 'basic' : 'archer';
+                const cost = TROOP_STATS[type.toUpperCase() as keyof typeof TROOP_STATS].cost;
+                if (gold >= cost) { this.createTroop('opponent', type); this.state.opponentGold -= cost; }
+            }
+        }
+
+        // 3. Objectives
+        if (this.state.objective.owner !== 'opponent' && gold > 200 && opponentTroops.length < 3) {
+            this.createTroop('opponent', 'berserker');
+            this.state.opponentGold -= 75;
+        }
+
+        // 4. Hero Spawn
+        if (gold > 400 && !opponentTroops.find(t => t.type === 'hero')) {
+            this.createTroop('opponent', 'hero');
+            this.state.opponentGold -= 300;
+        }
+
+    } else {
+        // Standard AI
+        const decision = Math.random();
+        let spawnChance = 0.4;
+        let upgradeChance = 0.05;
+        if (difficulty === 'easy') { spawnChance = 0.15; upgradeChance = 0.02; }
+        
+        if (playerTroops.length > opponentTroops.length + 2) spawnChance += 0.3;
+        if (gold > 600 && this.state.opponentCastle.level < 3) upgradeChance += 0.2;
+
+        if (decision < upgradeChance && this.state.opponentCastle.level < 3) this.upgradeCastle('opponent');
+        else if (decision < spawnChance) {
+          let type: TroopType = 'basic';
+          if (playerTroops.length > 3) type = 'archer';
+          if (gold > 150 && Math.random() < 0.3) type = 'berserker';
+          const stats = TROOP_STATS[type.toUpperCase() as keyof typeof TROOP_STATS] || TROOP_STATS.BASIC;
+          if (this.state.opponentGold >= stats.cost) { this.state.opponentGold -= stats.cost; this.createTroop('opponent', type); }
+        }
     }
-    if (difficulty === 'hard' && playerTroopCount > 5 && Math.random() < 0.01) this.useAbility('opponent', 'meteor');
     this.state.lastAiDecisionTime = now;
   }
 
