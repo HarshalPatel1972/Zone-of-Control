@@ -4,10 +4,11 @@ export const CANVAS_WIDTH = 1600;
 export const CANVAS_HEIGHT = 900;
 
 export const TROOP_STATS = {
-  BASIC: { cost: 25, health: 120, attackDamage: 15, attackRange: 50, attackCooldown: 800, speed: 3, size: 80, asset: 'knight' },
-  ARCHER: { cost: 40, health: 80, attackDamage: 20, attackRange: 400, attackCooldown: 1200, speed: 2.5, size: 80, asset: 'archer' },
-  BERSERKER: { cost: 60, health: 250, attackDamage: 30, attackRange: 60, attackCooldown: 600, speed: 4, size: 100, asset: 'berserker' }
+  BASIC: { cost: 20, health: 150, attackDamage: 12, attackRange: 50, attackCooldown: 800, speed: 2.8, size: 80, asset: 'knight' },
+  ARCHER: { cost: 45, health: 100, attackDamage: 25, attackRange: 450, attackCooldown: 1500, speed: 2.2, size: 80, asset: 'archer' },
+  BERSERKER: { cost: 75, health: 400, attackDamage: 40, attackRange: 60, attackCooldown: 700, speed: 3.5, size: 100, asset: 'berserker' }
 };
+
 
 export const CASTLE_UPGRADES = {
   2: { cost: 200, healthBoost: 500, incomeBoost: 5 },
@@ -214,17 +215,29 @@ export class GameEngine {
     const decision = Math.random();
     const difficulty = this.state.cpuDifficulty;
     
-    // Difficulty modifiers
-    let spawnChance = 0.5;
-    let upgradeChance = 0.1;
-    if (difficulty === 'easy') { spawnChance = 0.2; upgradeChance = 0.05; }
-    if (difficulty === 'hard') { spawnChance = 0.8; upgradeChance = 0.2; }
+    // AI Personality Metrics
+    const playerTroopCount = this.state.troops.filter(t => t.team === 'player').length;
+    const opponentTroopCount = this.state.troops.filter(t => t.team === 'opponent').length;
+    const gold = this.state.opponentGold;
+
+    let spawnChance = 0.4;
+    let upgradeChance = 0.05;
+    
+    if (difficulty === 'easy') { spawnChance = 0.15; upgradeChance = 0.02; }
+    if (difficulty === 'hard') { spawnChance = 0.7; upgradeChance = 0.15; }
+
+    // Tactical Overrides
+    if (playerTroopCount > opponentTroopCount + 2) spawnChance += 0.3; // Panic spawn
+    if (gold > 600 && this.state.opponentCastle.level < 3) upgradeChance += 0.2; // Aggressive upgrade
 
     if (decision < upgradeChance && this.state.opponentCastle.level < 3) {
       this.upgradeCastle('opponent');
     } else if (decision < spawnChance) {
-      const types: TroopType[] = ['basic', 'archer', 'berserker'];
-      const type = types[Math.floor(Math.random() * types.length)];
+      // Counter-picking logic
+      let type: TroopType = 'basic';
+      if (playerTroopCount > 3) type = 'archer'; // Counter swarm with range
+      if (gold > 150 && Math.random() < 0.3) type = 'berserker'; // High-tier occasionally
+      
       const stats = TROOP_STATS[type.toUpperCase() as keyof typeof TROOP_STATS];
       if (this.state.opponentGold >= stats.cost) {
         this.state.opponentGold -= stats.cost;
