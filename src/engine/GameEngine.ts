@@ -134,18 +134,26 @@ export class GameEngine {
     const x = targetX ?? (team === 'player' ? CANVAS_WIDTH * 0.7 : CANVAS_WIDTH * 0.3);
 
     if (type === 'meteor') {
+      const x = targetX ?? (team === 'player' ? CANVAS_WIDTH * 0.7 : CANVAS_WIDTH * 0.3);
+      const meteorVX = team === 'player' ? 8 : -8;
       for (let i = 0; i < 8; i++) {
         this.state.projectiles.push({
-          id: Math.random().toString(), x: x + (Math.random() - 0.5) * 300, y: -200 - (i * 100),
-          vx: (Math.random() - 0.5) * 4, vy: 20, team, damage: 120, type: 'meteor'
+          id: Math.random().toString(), 
+          x: x - (team === 'player' ? 400 : -400) + (Math.random() - 0.5) * 300, 
+          y: -400 - (i * 100),
+          vx: meteorVX + (Math.random() - 0.5) * 2, vy: 20, team, damage: 120, type: 'meteor'
         });
       }
       this.state.screenShake = 40;
     } else if (type === 'superMeteor') {
+      const x = targetX ?? (team === 'player' ? CANVAS_WIDTH * 0.7 : CANVAS_WIDTH * 0.3);
+      const meteorVX = team === 'player' ? 10 : -10;
       for (let i = 0; i < 15; i++) {
         this.state.projectiles.push({
-          id: Math.random().toString(), x: x + (Math.random() - 0.5) * 600, y: -400 - (i * 100),
-          vx: (Math.random() - 0.5) * 5, vy: 25, team, damage: 250, type: 'meteor'
+          id: Math.random().toString(), 
+          x: x - (team === 'player' ? 600 : -600) + (Math.random() - 0.5) * 600, 
+          y: -600 - (i * 100),
+          vx: meteorVX + (Math.random() - 0.5) * 3, vy: 25, team, damage: 250, type: 'meteor'
         });
       }
       this.state.screenShake = 80;
@@ -179,10 +187,13 @@ export class GameEngine {
       castle.activeShield = 10000; 
     } else if (type === 'iceFreeze') {
         this.visualEffects.push({ id: Math.random().toString(), type: 'ice', x, y: CANVAS_HEIGHT - 100, life: 1, maxLife: 1, color: '#64D2FF' });
-        this.state.troops.filter(t => t.team !== team && Math.abs(t.x - x) < 500).forEach(t => {
-            t.isFrozen = true; t.freezeTimer = 6000;
-            this.spawnImpactParticles(t.x, t.y - 40, '#64D2FF');
+        this.state.troops.forEach(t => {
+            if (t.team !== team && Math.abs(t.x - x) < 500) {
+                t.isFrozen = true; t.freezeTimer = 6000;
+                this.spawnImpactParticles(t.x, t.y - 40, '#64D2FF');
+            }
         });
+    }
     } else if (type === 'moon') {
         this.visualEffects.push({ id: Math.random().toString(), type: 'moon', x, y: 300, life: 1, maxLife: 1, color: '#BF5AF2' });
         this.state.troops.filter(t => t.team !== team && Math.abs(t.x - x) < 600).forEach(t => {
@@ -355,11 +366,14 @@ export class GameEngine {
 
   private spawnProjectile(attacker: Troop, target: Troop | Castle) {
     const dx = target.x - attacker.x;
-    const dy = -150;
-    const time = Math.abs(dx) / 12;
+    const g = 0.25; 
+    const t = 60; 
+    const vx = dx / t;
+    const vy = (60 - 0.5 * g * t * t) / t;
+
     this.state.projectiles.push({
       id: Math.random().toString(), x: attacker.x, y: attacker.y - 60,
-      vx: dx / time, vy: dy / time,
+      vx: vx, vy: vy,
       team: attacker.team, damage: attacker.attackDamage, type: 'arrow'
     });
   }
