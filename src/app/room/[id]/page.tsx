@@ -14,7 +14,7 @@ export default function RoomPage({ params }: { params: { id: string } }) {
   const [gameState, setGameState] = useState<GameState>(engine.getState());
   const [isStarted, setIsStarted] = useState(false);
   const [isTraining, setIsTraining] = useState(false);
-  const { isHost, sendSpawn } = useMultiplayer(roomId, (team, type, data) => {
+  const { role, sendSpawn } = useMultiplayer(roomId, (team, type) => {
     if (type === 'upgrade') engine.upgradeCastle(team);
     else if (type.startsWith('ability_')) {
         const parts = type.split('_');
@@ -27,6 +27,8 @@ export default function RoomPage({ params }: { params: { id: string } }) {
     else engine.spawnRemoteTroop(team, type as TroopType);
     setGameState(engine.getState());
   });
+
+  const isHost = role === 'host' || isTraining;
 
   const handleStartCpu = () => {
     setIsStarted(true);
