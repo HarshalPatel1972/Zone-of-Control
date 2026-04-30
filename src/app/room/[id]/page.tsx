@@ -63,6 +63,7 @@ export default function RoomPage({ params }: { params: { id: string } }) {
     const handleKeys = (e: KeyboardEvent) => {
         if (e.key === 'ArrowLeft') engine.setCameraX(gameState.cameraX - 100);
         if (e.key === 'ArrowRight') engine.setCameraX(gameState.cameraX + 100);
+        if (e.key === 'Escape') setTargetingAbility(null);
         setGameState(engine.getState());
     };
     window.addEventListener('keydown', handleKeys);
@@ -147,6 +148,16 @@ export default function RoomPage({ params }: { params: { id: string } }) {
         <div className="w-full h-full rounded-[1.5rem] overflow-hidden bg-black">
           <GameCanvas engine={engine} onClick={onCanvasClick} />
           
+          {/* Targeting Feedback Overlay */}
+          {targetingAbility && (
+            <div className="absolute top-10 left-1/2 -translate-x-1/2 z-50 animate-bounce">
+                <div className="px-8 py-4 glass-panel bg-gold/20 border-gold/50 rounded-2xl flex flex-col items-center gap-1 shadow-[0_0_50px_rgba(226,183,89,0.3)]">
+                    <span className="text-gold font-black uppercase tracking-[0.4em] text-xl">Targeting {targetingAbility.toUpperCase()}</span>
+                    <span className="text-white/50 text-[10px] font-bold uppercase tracking-widest">Click on the battlefield to unleash | ESC to cancel</span>
+                </div>
+            </div>
+          )}
+
           {!isStarted && <LobbyOverlay roomId={roomId} isHost={isHost} onCopy={() => {}} onStartCpu={handleStartCpu} />}
 
           {/* Minimap */}

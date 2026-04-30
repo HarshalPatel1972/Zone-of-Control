@@ -35,35 +35,40 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ engine, onClick }) => {
     };
   }, [engine]);
 
+  const dragThreshold = 5;
+  const hasMoved = useRef(false);
+
   const handleMouseDown = (e: React.MouseEvent) => {
     isDragging.current = true;
     lastX.current = e.clientX;
+    hasMoved.current = false;
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging.current) return;
     const dx = e.clientX - lastX.current;
-    // Scale the movement based on the ratio between canvas internal size and display size
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (rect) {
-        const scaleX = 1600 / rect.width;
-        engine.setCameraX(engine.getState().cameraX - dx * scaleX);
+    if (Math.abs(dx) > dragThreshold) {
+        hasMoved.current = true;
+        const rect = canvasRef.current?.getBoundingClientRect();
+        if (rect) {
+            const scaleX = 1600 / rect.width;
+            engine.setCameraX(engine.getState().cameraX - dx * scaleX);
+        }
+        lastX.current = e.clientX;
     }
-    lastX.current = e.clientX;
   };
 
   const handleMouseUp = (e: React.MouseEvent) => {
-    if (isDragging.current) {
-        isDragging.current = false;
-        return;
-    }
+    isDragging.current = false;
     
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (rect && onClick) {
-        const scaleX = 1600 / rect.width;
-        const x = (e.clientX - rect.left) * scaleX + engine.getState().cameraX;
-        const y = (e.clientY - rect.top) * (900 / rect.height);
-        onClick(x, y);
+    if (!hasMoved.current) {
+        const rect = canvasRef.current?.getBoundingClientRect();
+        if (rect && onClick) {
+            const scaleX = 1600 / rect.width;
+            const x = (e.clientX - rect.left) * scaleX + engine.getState().cameraX;
+            const y = (e.clientY - rect.top) * (900 / rect.height);
+            onClick(x, y);
+        }
     }
   };
 
