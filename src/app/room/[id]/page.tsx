@@ -69,11 +69,37 @@ export default function RoomPage() {
     setGameState(engine.getState());
   };
 
+  const [targetingAbility, setTargetingAbility] = React.useState<AbilityType | null>(null);
+
+  // Keyboard Navigation
+  useEffect(() => {
+    const handleKeys = (e: KeyboardEvent) => {
+        if (e.key === 'ArrowLeft') engine.setCameraX(gameState.cameraX - 100);
+        if (e.key === 'ArrowRight') engine.setCameraX(gameState.cameraX + 100);
+        setGameState(engine.getState());
+    };
+    window.addEventListener('keydown', handleKeys);
+    return () => window.removeEventListener('keydown', handleKeys);
+  }, [gameState.cameraX]);
+
   const handleAbility = (type: string) => {
     if (!isStarted) return;
+    if (type === 'meteor') {
+        setTargetingAbility(type as AbilityType);
+        return;
+    }
     engine.useAbility(isHost ? 'player' : 'opponent', type as any);
     if (!isTraining) sendSpawn(isHost ? 'player' : 'opponent', `ability_${type}`);
     setGameState(engine.getState());
+  };
+
+  const onCanvasClick = (x: number, y: number) => {
+    if (targetingAbility) {
+        engine.useAbility(isHost ? 'player' : 'opponent', targetingAbility, x);
+        if (!isTraining) sendSpawn(isHost ? 'player' : 'opponent', `ability_${targetingAbility}_${Math.floor(x)}`);
+        setTargetingAbility(null);
+        setGameState(engine.getState());
+    }
   };
 
   const myGold = isHost ? gameState.gold : gameState.opponentGold;
@@ -141,9 +167,11 @@ export default function RoomPage() {
       </div>
 
       {/* Primary Battlefield Container */}
-      <div className="relative w-full max-w-[1400px] aspect-[16/9] glass-panel p-2 rounded-[2.5rem] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)] border-white/5 overflow-hidden">
+      <div 
+        className={`relative w-full max-w-[1400px] aspect-[16/9] glass-panel p-2 rounded-[2.5rem] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)] border-white/5 overflow-hidden ${targetingAbility ? 'cursor-crosshair ring-2 ring-gold/50' : ''}`}
+      >
         <div className="w-full h-full rounded-[1.8rem] overflow-hidden bg-black">
-          <GameCanvas engine={engine} />
+          <GameCanvas engine={engine} onClick={onCanvasClick} />
           
           {!isStarted && (
             <LobbyOverlay roomId={roomId} isHost={isHost} onCopy={() => {}} onStartCpu={handleStartCpu} />

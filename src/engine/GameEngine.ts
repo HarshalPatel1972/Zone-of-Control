@@ -107,7 +107,7 @@ export class GameEngine {
     this.createTroop(team, type);
   }
 
-  public useAbility(team: Team, type: AbilityType) {
+  public useAbility(team: Team, type: AbilityType, targetX?: number) {
     const abilities = team === 'player' ? this.state.playerAbilities : this.state.opponentAbilities;
     const ability = abilities[type];
     const now = Date.now();
@@ -115,14 +115,14 @@ export class GameEngine {
 
     ability.lastUsed = now;
     if (type === 'meteor') {
-      const targetX = team === 'player' ? CANVAS_WIDTH * 0.7 : CANVAS_WIDTH * 0.3;
-      for (let i = 0; i < 5; i++) {
+      const x = targetX ?? (team === 'player' ? CANVAS_WIDTH * 0.7 : CANVAS_WIDTH * 0.3);
+      for (let i = 0; i < 8; i++) {
         this.state.projectiles.push({
-          id: Math.random().toString(), x: targetX + (Math.random() - 0.5) * 400, y: -200 - (i * 100),
-          vx: (Math.random() - 0.5) * 5, vy: 15, team, damage: 100, type: 'meteor'
+          id: Math.random().toString(), x: x + (Math.random() - 0.5) * 300, y: -200 - (i * 100),
+          vx: (Math.random() - 0.5) * 3, vy: 18, team, damage: 120, type: 'meteor'
         });
       }
-      this.state.screenShake = 30;
+      this.state.screenShake = 40;
     } else if (type === 'heal') {
       this.state.troops.filter(t => t.team === team).forEach(t => {
         t.health = Math.min(t.maxHealth, t.health + 50);

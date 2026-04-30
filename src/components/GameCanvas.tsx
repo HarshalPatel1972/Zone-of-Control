@@ -5,6 +5,7 @@ import { GameEngine, CANVAS_WIDTH, CANVAS_HEIGHT } from '../engine/GameEngine';
 
 interface GameCanvasProps {
   engine: GameEngine;
+  onClick?: (x: number, y: number) => void;
 }
 
 export const GameCanvas: React.FC<GameCanvasProps> = ({ engine }) => {
@@ -51,8 +52,19 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ engine }) => {
     lastX.current = e.clientX;
   };
 
-  const handleMouseUp = () => {
-    isDragging.current = false;
+  const handleMouseUp = (e: React.MouseEvent) => {
+    if (isDragging.current) {
+        isDragging.current = false;
+        return;
+    }
+    
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (rect && onClick) {
+        const scaleX = 1600 / rect.width;
+        const x = (e.clientX - rect.left) * scaleX + engine.getState().cameraX;
+        const y = (e.clientY - rect.top) * (900 / rect.height);
+        onClick(x, y);
+    }
   };
 
   return (
@@ -64,7 +76,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ engine }) => {
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
+        onMouseLeave={() => isDragging.current = false}
         className="w-full h-full object-contain cursor-grab active:cursor-grabbing"
       />
     </div>
