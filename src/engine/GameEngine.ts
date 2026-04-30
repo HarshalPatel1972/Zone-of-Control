@@ -481,9 +481,7 @@ export class GameEngine {
     this.drawCastle(ctx, this.state.playerCastle);
     this.drawCastle(ctx, this.state.opponentCastle);
     
-    const playerVisionX = Math.max(...this.state.troops.filter(t => t.team === 'player').map(t => t.x), 400);
     this.state.troops.forEach(t => { 
-        if (t.team === 'opponent' && t.x > playerVisionX + 500) return; 
         this.drawTroop(ctx, t); 
     });
     this.state.projectiles.forEach(p => this.drawProjectile(ctx, p));
