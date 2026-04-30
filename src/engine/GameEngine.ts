@@ -335,9 +335,9 @@ export class GameEngine {
       });
 
       if (!isBlocked && troop.state !== 'idle' && !troop.isFrozen) troop.x += currentSpeed;
-      else if (target && troop.state === 'advancing' && !troop.isFrozen) {
+      else if (target && !troop.isFrozen) {
         if (now - troop.lastAttackTime >= troop.attackCooldown) {
-          if (troop.type === 'archer') this.spawnProjectile(troop, target);
+          if (troop.type === 'archer' || troop.type === 'fire_archer' || troop.type === 'crossman') this.spawnProjectile(troop, target);
           else this.dealDamage(troop, target);
           troop.lastAttackTime = now; 
           troop.isAttacking = true; 
@@ -523,7 +523,8 @@ export class GameEngine {
   }
 
   private drawTroop(ctx: CanvasRenderingContext2D, troop: Troop) {
-    const img = this.assets[troop.type === 'basic' ? 'knight' : troop.type === 'hero' ? 'knight' : troop.type];
+    const stats = TROOP_STATS[troop.type.toUpperCase() as keyof typeof TROOP_STATS] || TROOP_STATS.BASIC;
+    const img = this.assets[stats.asset];
     const bob = Math.sin(troop.bobbingTimer) * 4;
     ctx.save(); ctx.translate(troop.x, troop.y - troop.size + bob);
     if (img && img.complete) {
