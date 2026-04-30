@@ -9,7 +9,7 @@ import { GameOverOverlay } from '@/components/GameOverOverlay';
 import { useMultiplayer } from '@/hooks/useMultiplayer';
 
 export default function RoomPage({ params }: { params: { id: string } }) {
-  const roomId = params.id;
+  const roomId = params?.id || 'UNKNOWN';
   const [engine] = useState(() => new GameEngine());
   const [gameState, setGameState] = useState<GameState>(engine.getState());
   const [isStarted, setIsStarted] = useState(false);
