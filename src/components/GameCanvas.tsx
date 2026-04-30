@@ -8,7 +8,7 @@ interface GameCanvasProps {
   onClick?: (x: number, y: number) => void;
 }
 
-export const GameCanvas: React.FC<GameCanvasProps> = ({ engine }) => {
+export const GameCanvas: React.FC<GameCanvasProps> = ({ engine, onClick }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isDragging = useRef(false);
   const lastX = useRef(0);
