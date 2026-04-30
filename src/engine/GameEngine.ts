@@ -330,7 +330,7 @@ export class GameEngine {
     if ('activeShield' in defender && defender.activeShield > 0) return;
     const damage = 'damage' in attacker ? attacker.damage : (attacker as Troop).attackDamage;
     defender.health -= damage;
-    this.spawnImpactParticles(defender.x + 30, defender.y ? (defender as any).y : CANVAS_HEIGHT - 120, '#FF453A');
+    this.spawnImpactParticles(defender.x + 30, 'y' in defender ? defender.y : CANVAS_HEIGHT - 120, '#FF453A');
   }
 
   private spawnImpactParticles(x: number, y: number, color: string) {
