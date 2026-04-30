@@ -193,7 +193,6 @@ export class GameEngine {
                 this.spawnImpactParticles(t.x, t.y - 40, '#64D2FF');
             }
         });
-    }
     } else if (type === 'moon') {
         this.visualEffects.push({ id: Math.random().toString(), type: 'moon', x, y: 300, life: 1, maxLife: 1, color: '#BF5AF2' });
         this.state.troops.filter(t => t.team !== team && Math.abs(t.x - x) < 600).forEach(t => {
