@@ -1,7 +1,7 @@
 export type Team = 'player' | 'opponent';
 export type CpuDifficulty = 'easy' | 'medium' | 'hard';
 export type WeatherType = 'clear' | 'rain' | 'fog' | 'storm';
-export type AbilityType = 'meteor' | 'heal' | 'shield';
+export type AbilityType = 'meteor' | 'heal' | 'shield' | 'lightning' | 'superMeteor' | 'moon' | 'superHeal' | 'iceFreeze';
 export type TroopType = 'basic' | 'archer' | 'berserker' | 'hero' | 'fire_archer' | 'crossman';
 
 export interface Castle {
@@ -41,6 +41,8 @@ export interface Troop {
   kills: number;
   rank: number; // 0 to 3
   state: 'idle' | 'advancing' | 'retreating';
+  isFrozen: boolean;
+  freezeTimer: number;
 }
 
 export interface Projectile {

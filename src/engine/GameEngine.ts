@@ -5,10 +5,12 @@ export const CANVAS_HEIGHT = 900;
 export const VIEW_WIDTH = 1600;
 
 export const TROOP_STATS = {
-  BASIC: { cost: 20, health: 150, attackDamage: 12, attackRange: 50, attackCooldown: 800, speed: 2.8, size: 80, asset: 'knight', maxCount: 20 },
-  ARCHER: { cost: 45, health: 100, attackDamage: 25, attackRange: 450, attackCooldown: 1500, speed: 2.2, size: 80, asset: 'archer', maxCount: 15 },
-  BERSERKER: { cost: 75, health: 400, attackDamage: 40, attackRange: 60, attackCooldown: 700, speed: 3.5, size: 100, asset: 'berserker', maxCount: 10 },
-  HERO: { cost: 300, health: 1200, attackDamage: 60, attackRange: 80, attackCooldown: 600, speed: 4.0, size: 120, asset: 'knight', maxCount: 1 }
+  BASIC: { cost: 20, health: 120, attackDamage: 12, attackRange: 50, attackCooldown: 800, speed: 2.8, size: 65, asset: 'knight', maxCount: 20 },
+  ARCHER: { cost: 45, health: 80, attackDamage: 25, attackRange: 450, attackCooldown: 1500, speed: 2.2, size: 65, asset: 'archer', maxCount: 15 },
+  BERSERKER: { cost: 75, health: 320, attackDamage: 40, attackRange: 60, attackCooldown: 700, speed: 3.5, size: 80, asset: 'berserker', maxCount: 10 },
+  HERO: { cost: 300, health: 1000, attackDamage: 60, attackRange: 80, attackCooldown: 600, speed: 4.0, size: 95, asset: 'knight', maxCount: 1 },
+  FIRE_ARCHER: { cost: 100, health: 120, attackDamage: 35, attackRange: 500, attackCooldown: 1800, speed: 2.0, size: 70, asset: 'archer', maxCount: 8 },
+  CROSSMAN: { cost: 120, health: 180, attackDamage: 50, attackRange: 350, attackCooldown: 2200, speed: 1.8, size: 75, asset: 'archer', maxCount: 6 }
 };
 
 export const CASTLE_UPGRADES = {
@@ -45,7 +47,12 @@ export class GameEngine {
     const abilityInit = {
       meteor: { cooldown: 15000, lastUsed: 0 },
       heal: { cooldown: 20000, lastUsed: 0 },
-      shield: { cooldown: 25000, lastUsed: 0 }
+      shield: { cooldown: 25000, lastUsed: 0 },
+      lightning: { cooldown: 12000, lastUsed: 0 },
+      superMeteor: { cooldown: 45000, lastUsed: 0 },
+      moon: { cooldown: 35000, lastUsed: 0 },
+      superHeal: { cooldown: 60000, lastUsed: 0 },
+      iceFreeze: { cooldown: 25000, lastUsed: 0 }
     };
     const statInit = { goldEarned: 150, troopsSpawned: 0, kills: 0, damageDealt: 0 };
 
@@ -100,6 +107,8 @@ export class GameEngine {
   public spawnTroop(team: Team, type: TroopType = 'basic') {
     const stats = TROOP_STATS[type.toUpperCase() as keyof typeof TROOP_STATS] || TROOP_STATS.BASIC;
     if (team === 'player' && this.state.gold < stats.cost) return;
+    
+    // Strict separate population logic
     const currentCount = this.state.troops.filter(t => t.team === team && t.type === type).length;
     if (currentCount >= stats.maxCount) return;
 
@@ -114,8 +123,9 @@ export class GameEngine {
     if (now - ability.lastUsed < ability.cooldown) return;
 
     ability.lastUsed = now;
+    const x = targetX ?? (team === 'player' ? CANVAS_WIDTH * 0.7 : CANVAS_WIDTH * 0.3);
+
     if (type === 'meteor') {
-      const x = targetX ?? (team === 'player' ? CANVAS_WIDTH * 0.7 : CANVAS_WIDTH * 0.3);
       for (let i = 0; i < 8; i++) {
         this.state.projectiles.push({
           id: Math.random().toString(), x: x + (Math.random() - 0.5) * 300, y: -200 - (i * 100),
@@ -123,14 +133,47 @@ export class GameEngine {
         });
       }
       this.state.screenShake = 40;
+    } else if (type === 'superMeteor') {
+      for (let i = 0; i < 20; i++) {
+        this.state.projectiles.push({
+          id: Math.random().toString(), x: x + (Math.random() - 0.5) * 800, y: -400 - (i * 50),
+          vx: (Math.random() - 0.5) * 4, vy: 22, team, damage: 200, type: 'meteor'
+        });
+      }
+      this.state.screenShake = 100;
+    } else if (type === 'lightning') {
+        this.state.troops.filter(t => t.team !== team && Math.abs(t.x - x) < 150).forEach(t => {
+            t.health -= 500;
+            this.spawnImpactParticles(t.x, t.y - 100, '#64D2FF');
+        });
+        this.state.screenShake = 20;
     } else if (type === 'heal') {
-      this.state.troops.filter(t => t.team === team).forEach(t => {
-        t.health = Math.min(t.maxHealth, t.health + 50);
+      this.state.troops.filter(t => t.team === team && Math.abs(t.x - x) < 400).forEach(t => {
+        t.health = Math.min(t.maxHealth, t.health + 100);
         this.spawnImpactParticles(t.x, t.y - 40, '#32D74B');
       });
+    } else if (type === 'superHeal') {
+        this.state.troops.filter(t => t.team === team).forEach(t => {
+            t.health = t.maxHealth;
+            this.spawnImpactParticles(t.x, t.y - 40, '#32D74B');
+        });
+        const castle = team === 'player' ? this.state.playerCastle : this.state.opponentCastle;
+        castle.health = Math.min(castle.maxHealth, castle.health + 500);
     } else if (type === 'shield') {
       const castle = team === 'player' ? this.state.playerCastle : this.state.opponentCastle;
-      castle.activeShield = 5000; 
+      castle.activeShield = 8000; 
+    } else if (type === 'iceFreeze') {
+        this.state.troops.filter(t => t.team !== team && Math.abs(t.x - x) < 500).forEach(t => {
+            t.isFrozen = true;
+            t.freezeTimer = 5000;
+            this.spawnImpactParticles(t.x, t.y - 40, '#64D2FF');
+        });
+    } else if (type === 'moon') {
+        this.state.troops.filter(t => t.team !== team && Math.abs(t.x - x) < 600).forEach(t => {
+            t.x += (x - t.x) * 0.5; // Pull towards moon center
+            t.health -= 50;
+        });
+        this.state.screenShake = 15;
     }
     this.playSound('spawn');
   }
@@ -161,7 +204,8 @@ export class GameEngine {
       health: stats.health, maxHealth: stats.health, secondaryHealth: stats.health,
       attackDamage: stats.attackDamage, attackRange: stats.attackRange, attackCooldown: stats.attackCooldown,
       lastAttackTime: 0, isAttacking: false, isTakingDamage: false, damageFlashTimer: 0,
-      bobbingTimer: Math.random() * Math.PI * 2, kills: 0, rank: 0, state: 'idle'
+      bobbingTimer: Math.random() * Math.PI * 2, kills: 0, rank: 0, state: 'idle',
+      isFrozen: false, freezeTimer: 0
     };
     this.state.troops.push(newTroop);
     this.state.stats[team].troopsSpawned++;
@@ -190,14 +234,16 @@ export class GameEngine {
     this.state.troops.forEach(t => {
       if (t.secondaryHealth > t.health) t.secondaryHealth -= (t.secondaryHealth - t.health) * smoothFactor;
       else t.secondaryHealth = t.health;
+      
+      // Freeze Logic
+      if (t.isFrozen) {
+          t.freezeTimer -= 16.67;
+          if (t.freezeTimer <= 0) t.isFrozen = false;
+      }
     });
 
-    // 2. Weather Logic
-    if (now - this.state.weatherTimer > 30000) {
-      const weathers: WeatherType[] = ['clear', 'rain', 'fog'];
-      this.state.weather = weathers[Math.floor(Math.random() * weathers.length)];
-      this.state.weatherTimer = now;
-    }
+    // 2. Weather Logic (Temporarily Disabled/Always Clear)
+    this.state.weather = 'clear';
 
     // 3. Objective Control
     let playerInfluence = 0;
@@ -261,15 +307,13 @@ export class GameEngine {
       if (troop.damageFlashTimer > 0) troop.damageFlashTimer--; else troop.isTakingDamage = false;
       
       const enemyCastle = troop.team === 'player' ? this.state.opponentCastle : this.state.playerCastle;
-      
-      // Range & Speed Modifiers
-      let currentRange = troop.attackRange;
-      if (this.state.weather === 'fog' && troop.type === 'archer') currentRange *= 0.6;
+      const currentRange = troop.attackRange;
       
       let currentSpeed = 0;
-      if (troop.state === 'advancing') {
+      if (troop.isFrozen) {
+          // No movement while frozen
+      } else if (troop.state === 'advancing') {
           currentSpeed = troop.speed;
-          if (this.state.weather === 'rain') currentSpeed *= 0.75;
       } else if (troop.state === 'retreating') {
           const homeX = troop.team === 'player' ? this.state.playerCastle.x + this.state.playerCastle.width : this.state.opponentCastle.x;
           if (Math.abs(troop.x - homeX) > 20) {
@@ -290,8 +334,8 @@ export class GameEngine {
         }
       });
 
-      if (!isBlocked && troop.state !== 'idle') troop.x += currentSpeed;
-      else if (target && troop.state === 'advancing') {
+      if (!isBlocked && troop.state !== 'idle' && !troop.isFrozen) troop.x += currentSpeed;
+      else if (target && troop.state === 'advancing' && !troop.isFrozen) {
         if (now - troop.lastAttackTime >= troop.attackCooldown) {
           if (troop.type === 'archer') this.spawnProjectile(troop, target);
           else this.dealDamage(troop, target);
@@ -339,7 +383,6 @@ export class GameEngine {
     const gold = this.state.opponentGold;
     const castle = this.state.opponentCastle;
 
-    // Expert Logic
     if (difficulty === 'hard') {
         const nearbyThreats = playerTroops.filter(t => t.x > castle.x - 400);
         if (nearbyThreats.length > 2 && gold >= 20) { this.createTroop('opponent', 'basic'); this.state.opponentGold -= 20; }
@@ -358,10 +401,8 @@ export class GameEngine {
         if (this.state.objective.owner !== 'opponent' && gold > 200 && opponentTroops.length < 3) { this.createTroop('opponent', 'berserker'); this.state.opponentGold -= 75; }
         if (gold > 400 && !opponentTroops.find(t => t.type === 'hero')) { this.createTroop('opponent', 'hero'); this.state.opponentGold -= 300; }
         
-        // AI commands
         if (opponentTroops.filter(t => t.state === 'idle').length > 3) this.issueCommand('opponent', 'charge');
         if (nearbyThreats.length > 5 && opponentTroops.length < 2) this.issueCommand('opponent', 'retreat');
-
     } else {
         const decision = Math.random();
         let spawnChance = 0.4;
@@ -370,7 +411,6 @@ export class GameEngine {
         if (decision < spawnChance) {
           let type: TroopType = 'basic';
           if (playerTroops.length > 3) type = 'archer';
-          if (gold > 150 && Math.random() < 0.3) type = 'berserker';
           const stats = TROOP_STATS[type.toUpperCase() as keyof typeof TROOP_STATS] || TROOP_STATS.BASIC;
           if (this.state.opponentGold >= stats.cost) { this.state.opponentGold -= stats.cost; this.createTroop('opponent', type); }
         }
@@ -442,14 +482,13 @@ export class GameEngine {
     this.drawCastle(ctx, this.state.opponentCastle);
     
     const playerVisionX = Math.max(...this.state.troops.filter(t => t.team === 'player').map(t => t.x), 400);
-    this.state.troops.forEach(t => { if (t.team === 'opponent' && t.x > playerVisionX + 500) return; this.drawTroop(ctx, t); });
+    this.state.troops.forEach(t => { 
+        if (t.team === 'opponent' && t.x > playerVisionX + 500) return; 
+        this.drawTroop(ctx, t); 
+    });
     this.state.projectiles.forEach(p => this.drawProjectile(ctx, p));
     this.state.particles.forEach(p => this.drawParticle(ctx, p));
     this.state.emotes.forEach(e => this.drawEmote(ctx, e));
-
-    const fogGrad = ctx.createLinearGradient(playerVisionX + 300, 0, playerVisionX + 600, 0);
-    fogGrad.addColorStop(0, 'rgba(0,0,0,0)'); fogGrad.addColorStop(1, 'rgba(0,0,0,0.8)');
-    ctx.fillStyle = fogGrad; ctx.fillRect(playerVisionX + 300, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
     this.drawWeather(ctx);
     ctx.restore();
@@ -467,50 +506,35 @@ export class GameEngine {
 
   private drawCastle(ctx: CanvasRenderingContext2D, castle: Castle) {
     const y = CANVAS_HEIGHT - 80 - castle.height;
-    const isUpgraded = castle.level > 1;
-    if (isUpgraded) {
-        ctx.save(); ctx.shadowBlur = 40; ctx.shadowColor = castle.team === 'player' ? 'rgba(50, 215, 75, 0.3)' : 'rgba(255, 69, 58, 0.3)';
-        ctx.globalAlpha = 0.5 + Math.sin(Date.now() / 500) * 0.2;
-    }
     if (this.assets.castle.complete) {
         ctx.save();
         if (castle.team === 'opponent') { ctx.translate(castle.x + castle.width, 0); ctx.scale(-1, 1); ctx.drawImage(this.assets.castle, 0, y, castle.width, castle.height); }
         else ctx.drawImage(this.assets.castle, castle.x, y, castle.width, castle.height);
         ctx.restore();
     }
-    if (isUpgraded) ctx.restore();
     if (castle.activeShield > 0) {
         ctx.save(); ctx.strokeStyle = '#64D2FF'; ctx.lineWidth = 8; ctx.beginPath();
         ctx.arc(castle.x + castle.width/2, y + castle.height/2, castle.height/2 + 20, 0, Math.PI*2); ctx.stroke(); ctx.restore();
     }
     const bW = castle.width; const bH = 12; const bX = castle.x; const bY = y - 40;
     ctx.fillStyle = 'rgba(0,0,0,0.6)'; this.roundRect(ctx, bX, bY, bW, bH, 6); ctx.fill();
-    const secondaryP = Math.max(0, castle.secondaryHealth / castle.maxHealth);
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)'; this.roundRect(ctx, bX, bY, bW * secondaryP, bH, 6); ctx.fill();
     const hpP = Math.max(0, castle.health / castle.maxHealth);
-    const grad = ctx.createLinearGradient(bX, 0, bX + bW, 0);
-    if (castle.team === 'player') { grad.addColorStop(0, '#32D74B'); grad.addColorStop(1, '#248A32'); }
-    else { grad.addColorStop(0, '#FF453A'); grad.addColorStop(1, '#A02A23'); }
-    ctx.fillStyle = grad; this.roundRect(ctx, bX, bY, bW * hpP, bH, 6); ctx.fill();
-    ctx.fillStyle = 'rgba(0,0,0,0.8)'; ctx.beginPath(); ctx.arc(bX + bW/2, bY - 15, 15, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#E2B759'; ctx.font = 'bold 14px Inter'; ctx.textAlign = 'center'; ctx.fillText(`LVL ${castle.level}`, bX + bW/2, bY - 11);
+    ctx.fillStyle = castle.team === 'player' ? '#32D74B' : '#FF453A'; this.roundRect(ctx, bX, bY, bW * hpP, bH, 6); ctx.fill();
   }
 
   private drawTroop(ctx: CanvasRenderingContext2D, troop: Troop) {
     const img = this.assets[troop.type === 'basic' ? 'knight' : troop.type === 'hero' ? 'knight' : troop.type];
     const bob = Math.sin(troop.bobbingTimer) * 4;
+    ctx.save(); ctx.translate(troop.x, troop.y - troop.size + bob);
     if (img && img.complete) {
-        ctx.save(); ctx.translate(troop.x, troop.y - troop.size + bob);
         if (troop.team === 'opponent') { ctx.translate(troop.size, 0); ctx.scale(-1, 1); }
         if (troop.isTakingDamage) ctx.filter = 'brightness(2) saturate(2)';
+        if (troop.isFrozen) ctx.filter = 'hue-rotate(180deg) brightness(1.5)';
         ctx.drawImage(img, 0, 0, troop.size, troop.size);
-        if (troop.rank > 0) { ctx.fillStyle = '#E2B759'; for (let i = 0; i < troop.rank; i++) ctx.fillRect(10 + (i * 12), -10, 8, 8); }
-        ctx.restore();
     }
+    ctx.restore();
     const bW = troop.size; const bH = 6; const bX = troop.x; const bY = troop.y - troop.size - 20;
     ctx.fillStyle = 'rgba(0,0,0,0.6)'; this.roundRect(ctx, bX, bY, bW, bH, 3); ctx.fill();
-    const secondaryP = Math.max(0, troop.secondaryHealth / troop.maxHealth);
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)'; this.roundRect(ctx, bX, bY, bW * secondaryP, bH, 3); ctx.fill();
     const hpP = Math.max(0, troop.health / troop.maxHealth);
     ctx.fillStyle = troop.team === 'player' ? '#32D74B' : '#FF453A';
     this.roundRect(ctx, bX, bY, bW * hpP, bH, 3); ctx.fill();
@@ -525,7 +549,6 @@ export class GameEngine {
     ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Math.atan2(p.vy, p.vx));
     ctx.strokeStyle = p.type === 'meteor' ? '#FF453A' : '#fff'; ctx.lineWidth = p.type === 'meteor' ? 6 : 3;
     ctx.beginPath(); ctx.moveTo(-15, 0); ctx.lineTo(0, 0); ctx.stroke();
-    ctx.fillStyle = p.type === 'meteor' ? '#FFD60A' : '#fff'; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-5, -3); ctx.lineTo(-5, 3); ctx.fill();
     ctx.restore();
   }
 
@@ -534,10 +557,7 @@ export class GameEngine {
   }
 
   private drawWeather(ctx: CanvasRenderingContext2D) {
-    if (this.state.weather === 'clear') return; ctx.save();
-    if (this.state.weather === 'fog') { ctx.fillStyle = 'rgba(200, 200, 220, 0.3)'; ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT); }
-    else if (this.state.weather === 'rain') { ctx.fillStyle = 'rgba(0, 50, 200, 0.1)'; ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT); }
-    ctx.restore();
+    // Weather effects temporarily removed
   }
 
   private roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
