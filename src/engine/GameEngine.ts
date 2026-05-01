@@ -10,7 +10,10 @@ export const TROOP_STATS = {
   BERSERKER: { cost: 75, health: 320, attackDamage: 40, attackRange: 60, attackCooldown: 700, speed: 3.5, size: 70, asset: 'berserker', maxCount: 10 },
   HERO: { cost: 300, health: 1000, attackDamage: 60, attackRange: 80, attackCooldown: 600, speed: 4.0, size: 85, asset: 'knight', maxCount: 1 },
   FIRE_ARCHER: { cost: 100, health: 120, attackDamage: 35, attackRange: 500, attackCooldown: 1800, speed: 2.0, size: 60, asset: 'archer', maxCount: 8 },
-  CROSSMAN: { cost: 120, health: 180, attackDamage: 50, attackRange: 350, attackCooldown: 2200, speed: 1.8, size: 65, asset: 'archer', maxCount: 6 }
+  CROSSMAN: { cost: 120, health: 180, attackDamage: 50, attackRange: 350, attackCooldown: 2200, speed: 1.8, size: 65, asset: 'archer', maxCount: 6 },
+  DRAGON: { cost: 500, health: 1500, attackDamage: 100, attackRange: 150, attackCooldown: 2000, speed: 3.0, size: 120, asset: 'berserker', maxCount: 2 },
+  ANGEL: { cost: 400, health: 800, attackDamage: 40, attackRange: 400, attackCooldown: 1200, speed: 4.5, size: 90, asset: 'knight', maxCount: 3 },
+  TANK: { cost: 250, health: 2500, attackDamage: 20, attackRange: 40, attackCooldown: 1000, speed: 1.5, size: 100, asset: 'berserker', maxCount: 5 }
 };
 
 export const CASTLE_UPGRADES = {
