@@ -107,82 +107,78 @@ export default function RoomPage({ params }: { params: { id: string } }) {
 
   const myGold = isHost ? gameState.gold : gameState.opponentGold;
   const enemyGold = isHost ? gameState.opponentGold : gameState.gold;
-  const playerVisionX = Math.max(...gameState.troops.filter(t => t.team === 'player').map(t => t.x), 400);
-  const isOpponentVisible = gameState.troops.some(t => t.team === 'opponent' && t.x < playerVisionX + 600);
-  const enemyGoldDisplay = isOpponentVisible ? `$${enemyGold}` : '???';
+  const enemyGoldDisplay = enemyGold > 0 ? `$${enemyGold}` : '???';
   const myStats = isHost ? gameState.stats.player : gameState.stats.opponent;
 
   return (
-    <main className="min-h-screen bg-[#09090b] p-4 sm:p-8 flex flex-col items-center overflow-hidden font-inter">
+    <main className="min-h-screen bg-[#09090b] p-2 sm:p-8 flex flex-col items-center overflow-x-hidden font-inter">
       
-      {/* Top HUD Banner */}
-      <div className="max-w-[1400px] w-full flex justify-between items-center mb-6 px-8 py-4 glass-panel rounded-3xl border-white/5">
-        <div className="flex items-center gap-8">
-          <div className="space-y-1">
-            <span className="block text-[10px] uppercase tracking-[0.3em] text-white/30 font-black">Theater</span>
-            <span className="text-base font-bold tracking-tight text-white/90">Sector {roomId.substring(0,4).toUpperCase()}</span>
+      {/* Top HUD Banner - Responsive Stacking */}
+      <div className="max-w-[1400px] w-full flex flex-col sm:flex-row justify-between items-center mb-4 sm:mb-6 p-4 sm:px-8 sm:py-4 glass-panel rounded-2xl sm:rounded-3xl border-white/5 gap-4">
+        <div className="flex items-center justify-center sm:justify-start gap-4 sm:gap-8 w-full sm:w-auto">
+          <div className="space-y-0.5">
+            <span className="block text-[8px] uppercase tracking-[0.3em] text-white/30 font-black">Theater</span>
+            <span className="text-xs sm:text-base font-bold tracking-tight text-white/90">Sector {roomId.substring(0,4).toUpperCase()}</span>
           </div>
-          <div className="h-8 w-px bg-white/5"></div>
-          <div className="space-y-1">
-            <span className="block text-[10px] uppercase tracking-[0.3em] text-white/30 font-black">Treasury</span>
-            <span className="text-2xl font-black text-gold">${myGold}</span>
+          <div className="h-6 w-px bg-white/5 hidden sm:block"></div>
+          <div className="space-y-0.5">
+            <span className="block text-[8px] uppercase tracking-[0.3em] text-white/30 font-black">Treasury</span>
+            <span className="text-lg sm:text-2xl font-black text-gold">${myGold}</span>
           </div>
-          <div className="h-8 w-px bg-white/5"></div>
-          <div className="space-y-1">
-            <span className="block text-[10px] uppercase tracking-[0.3em] text-white/30 font-black">Kills</span>
-            <span className="text-xl font-mono font-bold text-error">{myStats.kills}</span>
+          <div className="h-6 w-px bg-white/5 hidden sm:block"></div>
+          <div className="space-y-0.5">
+            <span className="block text-[8px] uppercase tracking-[0.3em] text-white/30 font-black">Kills</span>
+            <span className="text-sm sm:text-xl font-mono font-bold text-error">{myStats.kills}</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-8">
+        <div className="flex items-center justify-between sm:justify-end gap-6 sm:gap-8 w-full sm:w-auto">
             <div className="text-center">
-                <span className="block text-[10px] uppercase tracking-[0.3em] text-white/30 font-black mb-1">Opposition</span>
-                <span className="text-xl font-bold text-white/20 tracking-tighter">{enemyGoldDisplay}</span>
+                <span className="block text-[8px] uppercase tracking-[0.3em] text-white/30 font-black mb-0.5">Opposition</span>
+                <span className="text-sm sm:text-xl font-bold text-white/20 tracking-tighter">{enemyGoldDisplay}</span>
             </div>
-            <button onClick={() => window.location.href = '/'} className="px-6 py-2 glass-button text-[10px] font-black uppercase tracking-widest text-error border-error/20 rounded-full">Exit</button>
+            <button onClick={() => window.location.href = '/'} className="px-4 sm:px-6 py-1.5 sm:py-2 glass-button text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-error border-error/20 rounded-full">Exit</button>
         </div>
       </div>
 
-      {/* Primary Battlefield Container */}
-      <div className={`relative w-full max-w-[1400px] aspect-[16/9] glass-panel p-2 rounded-[2rem] shadow-2xl border-white/5 overflow-hidden ${targetingAbility ? 'cursor-crosshair ring-2 ring-gold/50' : ''}`}>
-        <div className="w-full h-full rounded-[1.5rem] overflow-hidden bg-black">
+      {/* Primary Battlefield Container - Aspect Ratio Fix */}
+      <div className={`relative w-full max-w-[1400px] aspect-[16/9] glass-panel p-1 sm:p-2 rounded-xl sm:rounded-[2rem] shadow-2xl border-white/5 overflow-hidden ${targetingAbility ? 'cursor-crosshair ring-1 ring-gold/50' : ''}`}>
+        <div className="w-full h-full rounded-lg sm:rounded-[1.5rem] overflow-hidden bg-black relative">
           <GameCanvas engine={engine} onClick={onCanvasClick} />
           
           {/* Targeting Feedback Overlay */}
           {targetingAbility && (
-            <div className="absolute top-10 left-1/2 -translate-x-1/2 z-50 animate-bounce">
-                <div className="px-8 py-4 glass-panel bg-gold/20 border-gold/50 rounded-2xl flex flex-col items-center gap-1 shadow-[0_0_50px_rgba(226,183,89,0.3)]">
-                    <span className="text-gold font-black uppercase tracking-[0.4em] text-xl">Targeting {targetingAbility.toUpperCase()}</span>
-                    <span className="text-white/50 text-[10px] font-bold uppercase tracking-widest">Click on the battlefield to unleash | ESC to cancel</span>
+            <div className="absolute top-4 sm:top-10 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+                <div className="px-4 py-2 sm:px-8 sm:py-4 glass-panel bg-gold/20 border-gold/50 rounded-lg sm:rounded-2xl flex flex-col items-center gap-0.5 shadow-2xl">
+                    <span className="text-gold font-black uppercase tracking-[0.2em] sm:tracking-[0.4em] text-xs sm:text-xl">Targeting {targetingAbility.toUpperCase()}</span>
+                    <span className="text-white/50 text-[6px] sm:text-[10px] font-bold uppercase tracking-widest text-center">Tap battlefield to strike | ESC to cancel</span>
                 </div>
             </div>
           )}
 
           {!isStarted && <LobbyOverlay roomId={roomId} isHost={isHost} onCopy={() => {}} onStartCpu={handleStartCpu} />}
 
-          {/* Minimap */}
-          <div className="absolute top-4 right-4 w-64 h-16 glass-panel rounded-xl overflow-hidden border-white/10 pointer-events-none">
+          {/* Minimap - Hidden on very small screens */}
+          <div className="absolute top-2 right-2 w-32 sm:w-64 h-8 sm:h-16 glass-panel rounded-lg overflow-hidden border-white/10 pointer-events-none hidden xs:block">
              <div className="relative w-full h-full bg-black/40 backdrop-blur-md">
                 <div className="absolute top-0 h-full border border-gold/40 bg-gold/5" style={{ left: `${(gameState.cameraX / 4000) * 100}%`, width: `${(1600 / 4000) * 100}%` }} />
-                <div className="absolute left-2 bottom-1 w-2 h-2 bg-success/60 rounded-sm" />
-                <div className="absolute right-2 bottom-1 w-2 h-2 bg-error/60 rounded-sm" />
-                {gameState.troops.map(t => <div key={t.id} className={`absolute bottom-1 w-1 h-1 rounded-full ${t.team === 'player' ? 'bg-success' : 'bg-error'}`} style={{ left: `${(t.x / 4000) * 100}%` }} />)}
+                {gameState.troops.map(t => <div key={t.id} className={`absolute bottom-0.5 w-0.5 sm:w-1 h-0.5 sm:h-1 rounded-full ${t.team === 'player' ? 'bg-success' : 'bg-error'}`} style={{ left: `${(t.x / 4000) * 100}%` }} />)}
              </div>
           </div>
 
           <GameOverOverlay status={gameState.status} onRestart={() => engine.reset()} onExit={() => window.location.href = '/'} />
 
-          {/* Staging Commands */}
+          {/* Staging Commands - Repositioned for Mobile */}
           {isStarted && (
-            <div className="absolute bottom-6 left-6 flex flex-col gap-2 pointer-events-auto">
-               <button onClick={() => handleCommand('charge')} className="px-6 py-3 bg-success text-white text-xs font-black uppercase tracking-widest rounded-xl hover:scale-105 active:scale-95 transition-all shadow-lg">CHARGE</button>
-               <button onClick={() => handleCommand('retreat')} className="px-6 py-3 bg-error text-white text-xs font-black uppercase tracking-widest rounded-xl hover:scale-105 active:scale-95 transition-all shadow-lg">RETREAT</button>
+            <div className="absolute bottom-2 left-2 sm:bottom-6 sm:left-6 flex flex-col gap-1 sm:gap-2 pointer-events-auto">
+               <button onClick={() => handleCommand('charge')} className="px-3 py-2 sm:px-6 sm:py-3 bg-success text-white text-[8px] sm:text-xs font-black uppercase tracking-widest rounded-lg hover:scale-105 active:scale-95 transition-all shadow-lg">CHARGE</button>
+               <button onClick={() => handleCommand('retreat')} className="px-3 py-2 sm:px-6 sm:py-3 bg-error text-white text-[8px] sm:text-xs font-black uppercase tracking-widest rounded-lg hover:scale-105 active:scale-95 transition-all shadow-lg">RETREAT</button>
             </div>
           )}
 
-          {/* New Expanded Abilities Bar */}
+          {/* Abilities Bar - Scrollable/Wrap on Mobile */}
           {isStarted && (
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-wrap justify-center gap-2 max-w-[600px] pointer-events-auto">
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex flex-nowrap sm:flex-wrap justify-start sm:justify-center gap-1 sm:gap-2 max-w-[90%] sm:max-w-[600px] pointer-events-auto overflow-x-auto no-scrollbar p-1">
                {(['meteor', 'lightning', 'iceFreeze', 'moon', 'superMeteor', 'heal', 'superHeal', 'shield'] as const).map(id => {
                  const abilities = isHost ? gameState.playerAbilities : gameState.opponentAbilities;
                  const data = abilities[id];
@@ -195,7 +191,7 @@ export default function RoomPage({ params }: { params: { id: string } }) {
                     key={id}
                     onClick={() => handleAbility(id)}
                     disabled={!isReady}
-                    className={`px-4 py-2 glass-panel rounded-xl text-[8px] font-black uppercase tracking-widest transition-all ${isReady ? `${colors[id] || 'text-white'} border-white/20 hover:scale-105 active:scale-95` : 'opacity-20 scale-90'}`}
+                    className={`flex-shrink-0 px-2 py-1.5 sm:px-4 sm:py-2 glass-panel rounded-lg text-[6px] sm:text-[8px] font-black uppercase tracking-widest transition-all ${isReady ? `${colors[id] || 'text-white'} border-white/20 active:scale-90` : 'opacity-20 scale-90'}`}
                    >
                      {name}
                    </button>
@@ -206,8 +202,8 @@ export default function RoomPage({ params }: { params: { id: string } }) {
         </div>
       </div>
 
-      {/* Optimized Command Interface (Smaller Buttons) */}
-      <div className="max-w-[1400px] w-full mt-6 grid grid-cols-3 md:grid-cols-7 gap-3 px-2">
+      {/* Troop Spawner - Scrollable on Mobile */}
+      <div className="max-w-[1400px] w-full mt-4 sm:mt-6 flex overflow-x-auto no-scrollbar gap-2 sm:grid sm:grid-cols-7 sm:gap-3 px-2 pb-4">
         {[
           { type: 'basic', name: 'Knight', cost: TROOP_STATS.BASIC.cost, max: TROOP_STATS.BASIC.maxCount, asset: 'knight' },
           { type: 'archer', name: 'Archer', cost: TROOP_STATS.ARCHER.cost, max: TROOP_STATS.ARCHER.maxCount, asset: 'archer' },
@@ -224,22 +220,22 @@ export default function RoomPage({ params }: { params: { id: string } }) {
               key={unit.type}
               onClick={() => handleSpawn(unit.type as TroopType)}
               disabled={!isStarted || myGold < unit.cost || isAtMax}
-              className="glass-button h-28 flex flex-col items-center justify-center gap-1 group relative overflow-hidden rounded-2xl disabled:opacity-20"
+              className="flex-shrink-0 w-24 sm:w-auto glass-button h-24 sm:h-28 flex flex-col items-center justify-center gap-1 group relative overflow-hidden rounded-xl sm:rounded-2xl disabled:opacity-20 active:scale-95"
             >
-              <img src={`/assets/${unit.asset}.png`} className="w-12 h-12 object-contain group-hover:scale-110 transition-transform" />
+              <img src={`/assets/${unit.asset}.png`} className="w-8 h-8 sm:w-12 sm:h-12 object-contain group-hover:scale-110 transition-transform" />
               <div className="text-center">
-                <span className="block text-[10px] font-bold uppercase tracking-widest text-white/80">{unit.name}</span>
-                <span className={`text-[8px] font-black ${isAtMax ? 'text-error' : 'text-white/30'}`}>[{currentCount}/{unit.max}]</span>
+                <span className="block text-[8px] sm:text-[10px] font-bold uppercase tracking-widest text-white/80">{unit.name}</span>
+                <span className={`text-[6px] sm:text-[8px] font-black ${isAtMax ? 'text-error' : 'text-white/30'}`}>[{currentCount}/{unit.max}]</span>
               </div>
             </button>
           );
         })}
 
-        <button onClick={handleUpgrade} disabled={!isStarted || (isHost ? gameState.playerCastle.level >= 3 : gameState.opponentCastle.level >= 3)} className="glass-button h-28 flex flex-col items-center justify-center gap-2 group rounded-2xl disabled:opacity-20">
-            <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 border border-white/10 group-hover:border-gold/50 transition-colors">
-                <svg className="w-4 h-4 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 11l7-7 7 7M5 19l7-7 7 7" /></svg>
+        <button onClick={handleUpgrade} disabled={!isStarted || (isHost ? gameState.playerCastle.level >= 3 : gameState.opponentCastle.level >= 3)} className="flex-shrink-0 w-24 sm:w-auto glass-button h-24 sm:h-28 flex flex-col items-center justify-center gap-1 sm:gap-2 group rounded-xl sm:rounded-2xl disabled:opacity-20 active:scale-95">
+            <div className="w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg bg-white/5 border border-white/10 group-hover:border-gold/50 transition-colors">
+                <svg className="w-3 h-3 sm:w-4 sm:h-4 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 11l7-7 7 7M5 19l7-7 7 7" /></svg>
             </div>
-            <span className="block text-[10px] font-bold uppercase tracking-widest text-white/80">Rank {(isHost ? gameState.playerCastle.level : gameState.opponentCastle.level)}</span>
+            <span className="block text-[8px] sm:text-[10px] font-bold uppercase tracking-widest text-white/80">Rank {(isHost ? gameState.playerCastle.level : gameState.opponentCastle.level)}</span>
         </button>
       </div>
 

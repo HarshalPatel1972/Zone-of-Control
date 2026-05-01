@@ -20,11 +20,16 @@
 
 
 body {
-  background-color: #09090b;
-  color: var(--color-text-primary);
-  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif;
-  -webkit-font-smoothing: antialiased;
+  @apply bg-[#09090b] text-white antialiased;
   overflow-x: hidden;
+  width: 100vw;
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+@layer utilities {
+  .mobile-touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
 }
 
 

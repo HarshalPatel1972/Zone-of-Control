@@ -23,13 +23,13 @@ export const LobbyOverlay: React.FC<LobbyOverlayProps> = ({ roomId, isHost, onCo
 
   return (
     <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/40 backdrop-blur-xl animate-fade-in">
-      <div className="glass-panel p-10 md:p-14 text-center max-w-xl w-full mx-4 rounded-[3rem] space-y-10 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)]">
+      <div className="glass-panel p-8 sm:p-14 text-center max-w-xl w-full mx-4 rounded-3xl sm:rounded-[3rem] space-y-6 sm:space-y-10 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)]">
         
-        <div className="space-y-3">
-          <h2 className="fancy-title text-4xl font-bold tracking-tight">
+        <div className="space-y-2 sm:space-y-3">
+          <h2 className="fancy-title text-3xl sm:text-4xl font-bold tracking-tight">
             Deploying <span className="text-white/40">Force</span>
           </h2>
-          <p className="text-white/50 text-base font-light tracking-wide italic">
+          <p className="text-white/50 text-sm sm:text-base font-light tracking-wide italic">
             "Strategy begins long before the first arrow is fired."
           </p>
         </div>
