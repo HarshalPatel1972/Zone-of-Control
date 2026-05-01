@@ -18,6 +18,13 @@ export default function RoomPage({ params }: { params: { id: string } }) {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
+    engine.reset();
+    setIsStarted(false);
+    setIsTraining(false);
+    setGameState(engine.getState());
+  }, [roomId, engine]);
+
+  useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 1024);
     checkMobile();
     window.addEventListener('resize', checkMobile);
