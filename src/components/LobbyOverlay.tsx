@@ -6,7 +6,7 @@ interface LobbyOverlayProps {
   roomId: string;
   isHost: boolean;
   onCopy: () => void;
-  onStartCpu: (diff: 'easy' | 'medium' | 'hard') => void;
+  onStartCpu: (diff: 'easy' | 'medium' | 'hard', mode: 'normal' | 'castle_wars' | 'super_castle_wars') => void;
 }
 
 export const LobbyOverlay: React.FC<LobbyOverlayProps> = ({ roomId, isHost, onCopy, onStartCpu }) => {
