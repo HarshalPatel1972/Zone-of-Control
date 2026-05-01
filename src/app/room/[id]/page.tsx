@@ -161,49 +161,6 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
   const enemyGold = isHost ? gameState.opponentGold : gameState.gold;
   const myStats = isHost ? gameState.stats.player : gameState.stats.opponent;
 
-  // Render components
-  const SpawnerGrid = () => (
-    <div className="grid grid-cols-2 lg:grid-cols-5 xl:grid-cols-10 gap-2 w-full max-w-[1400px]">
-        {[
-            { type: 'basic', name: 'Knight', asset: 'knight' },
-            { type: 'archer', name: 'Archer', asset: 'archer' },
-            { type: 'berserker', name: 'Slayer', asset: 'berserker' },
-            { type: 'fire_archer', name: 'Fire', asset: 'archer' },
-            { type: 'crossman', name: 'Cross', asset: 'archer' },
-            { type: 'hero', name: 'HERO', asset: 'hero' },
-            { type: 'dragon', name: 'DRAGON', asset: 'dragon' },
-            { type: 'angel', name: 'ANGEL', asset: 'angel' },
-            { type: 'tank', name: 'TANK', asset: 'tank' },
-        ].map((unit) => {
-            const cost = (TROOP_STATS as any)[unit.type.toUpperCase()]?.cost || 0;
-            const currentCount = gameState.troops.filter(t => t.team === (isHost ? 'player' : 'opponent') && t.type === unit.type).length;
-            const maxCount = (TROOP_STATS as any)[unit.type.toUpperCase()]?.maxCount || 0;
-            const isAtMax = currentCount >= maxCount;
-
-            return (
-                <button
-                    key={unit.type}
-                    onClick={() => handleSpawn(unit.type as TroopType)}
-                    disabled={!isStarted || myGold < cost || isAtMax}
-                    className="glass-button flex flex-col items-center justify-center p-4 h-32 rounded-2xl group active:scale-95 disabled:opacity-20"
-                >
-                    <img src={`/assets/${unit.asset}.png`} className="w-12 h-12 object-contain mb-2 group-hover:scale-110 transition-transform" />
-                    <span className="text-[10px] font-bold uppercase text-white/80">{unit.name}</span>
-                    <span className="text-[12px] font-black text-gold">${cost}</span>
-                    <span className="text-[8px] font-bold text-white/20">[{currentCount}/{maxCount}]</span>
-                </button>
-            );
-        })}
-        <button onClick={handleUpgrade} disabled={!isStarted || (isHost ? gameState.playerCastle.level >= 3 : gameState.opponentCastle.level >= 3)} className="glass-button flex flex-col items-center justify-center p-4 h-32 rounded-2xl group active:scale-95 disabled:opacity-20">
-            <div className="w-8 h-8 mb-2 flex items-center justify-center rounded bg-gold/10 text-gold border border-gold/20">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 11l7-7 7 7M5 19l7-7 7 7" /></svg>
-            </div>
-            <span className="text-[10px] font-bold uppercase text-white/80">Upgrade</span>
-            <span className="text-[10px] font-black text-gold">RANK {isHost ? gameState.playerCastle.level : gameState.opponentCastle.level}</span>
-        </button>
-    </div>
-  );
-
   return (
     <main className="fixed inset-0 bg-[#09090b] flex flex-col items-center font-inter select-none touch-none overflow-hidden text-white">
       
@@ -327,7 +284,45 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
       {isStarted && (
         <div className="w-full bg-[#09090b] border-t border-white/5 p-6 flex justify-center z-50">
             {!isMobile ? (
-                <SpawnerGrid />
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-10 gap-3 w-full max-w-[1400px]">
+                    {[
+                        { type: 'basic', name: 'Knight', asset: 'knight' },
+                        { type: 'archer', name: 'Archer', asset: 'archer' },
+                        { type: 'berserker', name: 'Slayer', asset: 'berserker' },
+                        { type: 'fire_archer', name: 'Fire', asset: 'archer' },
+                        { type: 'crossman', name: 'Cross', asset: 'archer' },
+                        { type: 'hero', name: 'HERO', asset: 'hero' },
+                        { type: 'dragon', name: 'DRAGON', asset: 'dragon' },
+                        { type: 'angel', name: 'ANGEL', asset: 'angel' },
+                        { type: 'tank', name: 'TANK', asset: 'tank' },
+                    ].map((unit) => {
+                        const cost = (TROOP_STATS as any)[unit.type.toUpperCase()]?.cost || 0;
+                        const currentCount = gameState.troops.filter(t => t.team === (isHost ? 'player' : 'opponent') && t.type === unit.type).length;
+                        const maxCount = (TROOP_STATS as any)[unit.type.toUpperCase()]?.maxCount || 0;
+                        const isAtMax = currentCount >= maxCount;
+
+                        return (
+                            <button
+                                key={unit.type}
+                                onClick={() => handleSpawn(unit.type as TroopType)}
+                                disabled={!isStarted || myGold < cost || isAtMax}
+                                className="glass-button flex flex-col items-center justify-center p-4 h-32 rounded-2xl group active:scale-95 disabled:opacity-20 hover:border-gold/50 transition-all"
+                            >
+                                <img src={`/assets/${unit.asset}.png`} className="w-12 h-12 object-contain mb-2 group-hover:scale-110 transition-transform" />
+                                <span className="text-[10px] font-bold uppercase text-white/80">{unit.name}</span>
+                                <span className="text-[12px] font-black text-gold">${cost}</span>
+                                <span className="text-[8px] font-bold text-white/20">[{currentCount}/{maxCount}]</span>
+                            </button>
+                        );
+                    })}
+                    <button onClick={handleUpgrade} disabled={!isStarted || (isHost ? gameState.playerCastle.level >= 3 : gameState.opponentCastle.level >= 3)} className="glass-button flex flex-col items-center justify-center p-4 h-32 rounded-2xl group active:scale-95 disabled:opacity-20 hover:border-gold/50 transition-all">
+                        <div className="w-8 h-8 mb-2 flex items-center justify-center rounded bg-gold/10 text-gold border border-gold/20">
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 11l7-7 7 7M5 19l7-7 7 7" /></svg>
+                        </div>
+                        <span className="text-[10px] font-bold uppercase text-white/80">Upgrade</span>
+                        <span className="text-[10px] font-black text-gold">RANK {isHost ? gameState.playerCastle.level : gameState.opponentCastle.level}</span>
+                    </button>
+                </div>
             ) : (
                 <div className="w-full flex flex-col gap-4">
                     {/* Mobile Sub-menus (same as before) */}
