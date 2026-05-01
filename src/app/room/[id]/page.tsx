@@ -179,10 +179,10 @@ export default function RoomPage({ params }: { params: { id: string } }) {
                 { type: 'berserker', name: 'Slayer', cost: TROOP_STATS.BERSERKER.cost, asset: 'berserker' },
                 { type: 'fire_archer', name: 'Fire', cost: TROOP_STATS.FIRE_ARCHER.cost, asset: 'archer' },
                 { type: 'crossman', name: 'Cross', cost: TROOP_STATS.CROSSMAN.cost, asset: 'archer' },
-                { type: 'hero', name: 'HERO', cost: TROOP_STATS.HERO.cost, asset: 'knight' },
-                { type: 'dragon', name: 'DRAGON', cost: TROOP_STATS.DRAGON.cost, asset: 'berserker' },
-                { type: 'angel', name: 'ANGEL', cost: TROOP_STATS.ANGEL.cost, asset: 'knight' },
-                { type: 'tank', name: 'TANK', cost: TROOP_STATS.TANK.cost, asset: 'berserker' },
+                { type: 'hero', name: 'HERO', cost: TROOP_STATS.HERO.cost, asset: 'hero' },
+                { type: 'dragon', name: 'DRAGON', cost: TROOP_STATS.DRAGON.cost, asset: 'dragon' },
+                { type: 'angel', name: 'ANGEL', cost: TROOP_STATS.ANGEL.cost, asset: 'angel' },
+                { type: 'tank', name: 'TANK', cost: TROOP_STATS.TANK.cost, asset: 'tank' },
               ].map((unit) => {
                 const currentCount = gameState.troops.filter(t => t.team === (isHost ? 'player' : 'opponent') && t.type === unit.type).length;
                 const isAtMax = currentCount >= ((TROOP_STATS as any)[unit.type.toUpperCase()]?.maxCount || 0);
