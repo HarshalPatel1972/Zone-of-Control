@@ -18,10 +18,16 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
   const [activeTab, setActiveTab] = useState<'none' | 'recruit' | 'spells'>('none');
   const [isMobile, setIsMobile] = useState(false);
 
+  // Prevent redundant resets when searchParams change but roomId remains the same
+  const [lastInitializedRoom, setLastInitializedRoom] = useState<string | null>(null);
+
   useEffect(() => {
+    if (lastInitializedRoom === roomId) return;
+
     engine.reset();
     setIsStarted(false);
     setIsTraining(false);
+    setLastInitializedRoom(roomId);
     
     // Auto-start training if params exist
     if (sParams.training === 'true') {
@@ -35,7 +41,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
     }
     
     setGameState(engine.getState());
-  }, [roomId, engine, sParams]);
+  }, [roomId, engine, sParams, lastInitializedRoom]);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 1024);
