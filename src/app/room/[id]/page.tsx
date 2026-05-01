@@ -180,7 +180,7 @@ export default function RoomPage({ params }: { params: { id: string } }) {
                 { type: 'hero', name: 'HERO', cost: TROOP_STATS.HERO.cost, asset: 'knight' },
               ].map((unit) => {
                 const currentCount = gameState.troops.filter(t => t.team === (isHost ? 'player' : 'opponent') && t.type === unit.type).length;
-                const isAtMax = currentCount >= (TROOP_STATS[unit.type.toUpperCase() as any]?.maxCount || 0);
+                const isAtMax = currentCount >= ((TROOP_STATS as any)[unit.type.toUpperCase()]?.maxCount || 0);
                 const canAfford = myGold >= unit.cost;
 
                 return (
