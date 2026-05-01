@@ -14,9 +14,18 @@ export default function LandingPage() {
     return () => clearTimeout(timer);
   }, []);
 
+  const [targetRoomId, setTargetRoomId] = useState('');
+
   const handleCreateRoom = () => {
     const roomId = nanoid(8);
     router.push(`/room/${roomId}`);
+  };
+
+  const handleJoinRoom = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (targetRoomId.trim()) {
+      router.push(`/room/${targetRoomId.trim()}`);
+    }
   };
 
   return (
@@ -37,7 +46,7 @@ export default function LandingPage() {
       <div className={`relative z-10 max-w-4xl w-full flex flex-col items-center transition-all duration-1000 ease-out ${isReady ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
         
         {/* Header Section */}
-        <div className="text-center space-y-2 mb-16">
+        <div className="text-center space-y-2 mb-12">
           <h1 className="fancy-title text-6xl md:text-8xl tracking-tight leading-none mb-4">
             Zone <br /> <span className="opacity-90">Control</span>
           </h1>
@@ -49,34 +58,53 @@ export default function LandingPage() {
         </div>
 
         {/* Action Card */}
-        <div className="glass-panel p-10 md:p-14 w-full max-w-lg rounded-[2.5rem] flex flex-col gap-10 animate-fade-in shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
-          <div className="space-y-4 text-center">
-            <p className="text-lg md:text-xl text-white/80 leading-relaxed font-light">
-              Master the art of <span className="text-gold font-medium">strategic defense</span> and expand your territory in real-time combat.
-            </p>
-          </div>
-
-          <div className="space-y-4">
+        <div className="glass-panel p-8 md:p-12 w-full max-w-lg rounded-[2.5rem] flex flex-col gap-8 animate-fade-in shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+          <div className="space-y-6">
             <button
               onClick={handleCreateRoom}
-              className="glass-button-primary w-full py-5 text-xl tracking-wide flex items-center justify-center gap-3 active:scale-[0.97]"
+              className="glass-button-primary w-full py-5 text-xl tracking-wide flex items-center justify-center gap-3 active:scale-[0.97] group"
             >
-              <span>ENTER BATTLEFIELD</span>
+              <span>CREATE BATTLEFIELD</span>
               <svg className="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
               </svg>
             </button>
 
+            <div className="relative flex items-center gap-4 py-2">
+              <div className="h-px flex-1 bg-white/10"></div>
+              <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em]">OR JOIN EXISTING</span>
+              <div className="h-px flex-1 bg-white/10"></div>
+            </div>
+
+            <form onSubmit={handleJoinRoom} className="space-y-3">
+              <input 
+                type="text" 
+                placeholder="ENTER SECTOR ID" 
+                value={targetRoomId}
+                onChange={(e) => setTargetRoomId(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-center text-gold font-bold tracking-widest placeholder:text-white/10 focus:outline-none focus:border-gold/50 focus:bg-white/10 transition-all uppercase"
+              />
+              <button
+                type="submit"
+                disabled={!targetRoomId.trim()}
+                className="glass-button w-full py-4 text-sm font-black tracking-[0.2em] uppercase disabled:opacity-20 transition-all"
+              >
+                DEPLOY TO SECTOR
+              </button>
+            </form>
+          </div>
+
+          <div className="space-y-4">
             <Link
               href="/fun-zone"
-              className="glass-button w-full text-white/90 text-center block py-4 text-sm font-semibold tracking-widest hover:text-white"
+              className="w-full text-white/40 text-center block py-2 text-[10px] font-bold tracking-[0.3em] uppercase hover:text-white transition-colors"
             >
               EXPLORE FUN ZONE
             </Link>
           </div>
 
           {/* Feature Badges */}
-          <div className="flex flex-wrap justify-center gap-x-8 gap-y-3 pt-4 border-t border-white/5">
+          <div className="flex flex-wrap justify-center gap-x-8 gap-y-3 pt-6 border-t border-white/5">
             {[
               { label: 'Online PVP', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z' },
               { label: 'Real-time', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },

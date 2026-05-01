@@ -46,7 +46,13 @@ export default function RoomPage({ params }: { params: { id: string } }) {
   });
 
   useEffect(() => {
-    if (role) engine.setMultiplayer(true);
+    if (role) {
+      engine.setMultiplayer(true);
+      if (role === 'guest') {
+        engine.setCameraX(4000 - 1600);
+        setGameState(engine.getState());
+      }
+    }
   }, [role, engine]);
 
   useEffect(() => {
@@ -188,7 +194,7 @@ export default function RoomPage({ params }: { params: { id: string } }) {
             <div className="flex gap-12">
                 <div>
                     <span className="block text-[10px] font-black text-white/20 uppercase tracking-[0.3em]">Sector {roomId.substring(0,4)}</span>
-                    <span className="text-2xl font-black tracking-tight">Theater Command</span>
+                    <span className="text-2xl font-black tracking-tight">Theater Command — <span className={isHost ? 'text-success' : 'text-error'}>{isHost ? 'Western Flank' : 'Eastern Flank'}</span></span>
                 </div>
                 <div className="h-10 w-px bg-white/10 self-center"></div>
                 <div>
@@ -275,7 +281,12 @@ export default function RoomPage({ params }: { params: { id: string } }) {
             <div className="absolute top-6 right-6 w-80 h-20 glass-panel rounded-2xl overflow-hidden pointer-events-none">
                 <div className="relative w-full h-full bg-black/40 backdrop-blur-xl">
                     <div className="absolute top-0 h-full border border-gold/40 bg-gold/5" style={{ left: `${(gameState.cameraX / 6000) * 100}%`, width: `${(1600 / 6000) * 100}%` }} />
-                    {gameState.troops.map(t => <div key={t.id} className={`absolute bottom-1 w-1.5 h-1.5 rounded-full ${t.team === 'player' ? 'bg-success' : 'bg-error'}`} style={{ left: `${(t.x / 6000) * 100}%` }} />)}
+                    {gameState.troops.map(t => {
+                        const isMyTroop = (isHost && t.team === 'player') || (!isHost && t.team === 'opponent');
+                        return <div key={t.id} className={`absolute bottom-1 w-1.5 h-1.5 rounded-full ${isMyTroop ? 'bg-success' : 'bg-error'} ${isMyTroop ? 'shadow-[0_0_5px_rgba(50,215,75,0.5)]' : ''}`} style={{ left: `${(t.x / 6000) * 100}%` }} />
+                    })}
+                    <div className="absolute bottom-0 left-[1.6%] w-2 h-4 bg-success/40 rounded-t" title="West Castle" />
+                    <div className="absolute bottom-0 left-[60.8%] w-2 h-4 bg-error/40 rounded-t" title="East Castle" />
                 </div>
             </div>
         )}
