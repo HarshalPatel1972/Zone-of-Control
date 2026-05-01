@@ -46,6 +46,10 @@ export default function RoomPage({ params }: { params: { id: string } }) {
   });
 
   useEffect(() => {
+    if (role) engine.setMultiplayer(true);
+  }, [role, engine]);
+
+  useEffect(() => {
     if (isGameStarted) setIsStarted(true);
   }, [isGameStarted]);
 
