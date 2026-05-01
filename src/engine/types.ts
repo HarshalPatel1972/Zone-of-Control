@@ -92,7 +92,7 @@ export interface Emote {
   y: number;
 }
 
-export type GameStatus = 'playing' | 'victory' | 'defeat';
+export type GameStatus = 'lobby' | 'playing' | 'victory' | 'defeat';
 
 export interface GameState {
   mode: 'normal' | 'castle_wars' | 'super_castle_wars';
