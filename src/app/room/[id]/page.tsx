@@ -14,6 +14,8 @@ export default function RoomPage({ params }: { params: { id: string } }) {
   const [gameState, setGameState] = useState<GameState>(engine.getState());
   const [isStarted, setIsStarted] = useState(false);
   const [isTraining, setIsTraining] = useState(false);
+  const [activeTab, setActiveTab] = useState<'none' | 'recruit' | 'spells'>('none');
+
   const { role, sendSpawn } = useMultiplayer(roomId, (team, type) => {
     if (type === 'upgrade') engine.upgradeCastle(team);
     else if (type.startsWith('ability_')) {
@@ -75,6 +77,7 @@ export default function RoomPage({ params }: { params: { id: string } }) {
     const targeted: AbilityType[] = ['meteor', 'superMeteor', 'lightning', 'iceFreeze', 'moon', 'heal'];
     if (targeted.includes(type)) {
         setTargetingAbility(type);
+        setActiveTab('none');
         return;
     }
     engine.useAbility(isHost ? 'player' : 'opponent', type);
@@ -88,6 +91,8 @@ export default function RoomPage({ params }: { params: { id: string } }) {
         if (!isTraining) sendSpawn(isHost ? 'player' : 'opponent', `ability_${targetingAbility}_${Math.floor(x)}`);
         setTargetingAbility(null);
         setGameState(engine.getState());
+    } else if (activeTab !== 'none') {
+        setActiveTab('none');
     }
   };
 
@@ -98,87 +103,107 @@ export default function RoomPage({ params }: { params: { id: string } }) {
     setGameState(engine.getState());
   };
 
-  const handleEmote = (type: string) => {
-    if (!isStarted) return;
-    engine.triggerEmote(isHost ? 'player' : 'opponent', type);
-    if (!isTraining) sendSpawn(isHost ? 'player' : 'opponent', `emote_${type}`);
-    setGameState(engine.getState());
-  };
-
   const myGold = isHost ? gameState.gold : gameState.opponentGold;
   const enemyGold = isHost ? gameState.opponentGold : gameState.gold;
-  const enemyGoldDisplay = enemyGold > 0 ? `$${enemyGold}` : '???';
   const myStats = isHost ? gameState.stats.player : gameState.stats.opponent;
 
   return (
-    <main className="min-h-screen bg-[#09090b] p-2 sm:p-8 flex flex-col items-center overflow-x-hidden font-inter">
+    <main className="fixed inset-0 bg-black flex flex-col items-center font-inter select-none touch-none overflow-hidden">
       
-      {/* Top HUD Banner - Responsive Stacking */}
-      <div className="max-w-[1400px] w-full flex flex-col sm:flex-row justify-between items-center mb-4 sm:mb-6 p-4 sm:px-8 sm:py-4 glass-panel rounded-2xl sm:rounded-3xl border-white/5 gap-4">
-        <div className="flex items-center justify-center sm:justify-start gap-4 sm:gap-8 w-full sm:w-auto">
-          <div className="space-y-0.5">
-            <span className="block text-[8px] uppercase tracking-[0.3em] text-white/30 font-black">Theater</span>
-            <span className="text-xs sm:text-base font-bold tracking-tight text-white/90">Sector {roomId.substring(0,4).toUpperCase()}</span>
+      {/* HUD - Floating Minimalist (Mobile First) */}
+      <div className="absolute top-0 inset-x-0 z-30 pointer-events-none p-4 flex justify-between items-start">
+        <div className="flex flex-col gap-1">
+          <div className="px-4 py-2 glass-panel bg-black/60 rounded-xl flex items-center gap-3 border-gold/30">
+            <span className="text-xl sm:text-2xl font-black text-gold">${myGold}</span>
+            <div className="h-4 w-px bg-white/20"></div>
+            <span className="text-xs font-bold text-white/60 tracking-widest uppercase">{myStats.kills} KILLS</span>
           </div>
-          <div className="h-6 w-px bg-white/5 hidden sm:block"></div>
-          <div className="space-y-0.5">
-            <span className="block text-[8px] uppercase tracking-[0.3em] text-white/30 font-black">Treasury</span>
-            <span className="text-lg sm:text-2xl font-black text-gold">${myGold}</span>
-          </div>
-          <div className="h-6 w-px bg-white/5 hidden sm:block"></div>
-          <div className="space-y-0.5">
-            <span className="block text-[8px] uppercase tracking-[0.3em] text-white/30 font-black">Kills</span>
-            <span className="text-sm sm:text-xl font-mono font-bold text-error">{myStats.kills}</span>
-          </div>
+          <div className="px-2 py-0.5 text-[8px] font-black tracking-widest text-white/20 uppercase">Sector {roomId.substring(0,4)}</div>
         </div>
 
-        <div className="flex items-center justify-between sm:justify-end gap-6 sm:gap-8 w-full sm:w-auto">
-            <div className="text-center">
-                <span className="block text-[8px] uppercase tracking-[0.3em] text-white/30 font-black mb-0.5">Opposition</span>
-                <span className="text-sm sm:text-xl font-bold text-white/20 tracking-tighter">{enemyGoldDisplay}</span>
-            </div>
-            <button onClick={() => window.location.href = '/'} className="px-4 sm:px-6 py-1.5 sm:py-2 glass-button text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-error border-error/20 rounded-full">Exit</button>
+        <div className="flex flex-col items-end gap-2 pointer-events-auto">
+            <button onClick={() => window.location.href = '/'} className="p-2 bg-error/20 border border-error/40 rounded-full text-error backdrop-blur-md">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            <div className="px-3 py-1 bg-black/60 rounded-lg border border-white/5 text-[10px] font-black text-white/30 uppercase tracking-tighter">OPP: ${enemyGold > 0 ? enemyGold : '???'}</div>
         </div>
       </div>
 
-      {/* Primary Battlefield Container - Aspect Ratio Fix */}
-      <div className={`relative w-full max-w-[1400px] aspect-[16/9] glass-panel p-1 sm:p-2 rounded-xl sm:rounded-[2rem] shadow-2xl border-white/5 overflow-hidden ${targetingAbility ? 'cursor-crosshair ring-1 ring-gold/50' : ''}`}>
-        <div className="w-full h-full rounded-lg sm:rounded-[1.5rem] overflow-hidden bg-black relative">
-          <GameCanvas engine={engine} onClick={onCanvasClick} />
-          
-          {/* Targeting Feedback Overlay */}
-          {targetingAbility && (
-            <div className="absolute top-4 sm:top-10 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
-                <div className="px-4 py-2 sm:px-8 sm:py-4 glass-panel bg-gold/20 border-gold/50 rounded-lg sm:rounded-2xl flex flex-col items-center gap-0.5 shadow-2xl">
-                    <span className="text-gold font-black uppercase tracking-[0.2em] sm:tracking-[0.4em] text-xs sm:text-xl">Targeting {targetingAbility.toUpperCase()}</span>
-                    <span className="text-white/50 text-[6px] sm:text-[10px] font-bold uppercase tracking-widest text-center">Tap battlefield to strike | ESC to cancel</span>
-                </div>
-            </div>
-          )}
-
-          {!isStarted && <LobbyOverlay roomId={roomId} isHost={isHost} onCopy={() => {}} onStartCpu={handleStartCpu} />}
-
-          {/* Minimap - Hidden on very small screens */}
-          <div className="absolute top-2 right-2 w-32 sm:w-64 h-8 sm:h-16 glass-panel rounded-lg overflow-hidden border-white/10 pointer-events-none hidden xs:block">
-             <div className="relative w-full h-full bg-black/40 backdrop-blur-md">
-                <div className="absolute top-0 h-full border border-gold/40 bg-gold/5" style={{ left: `${(gameState.cameraX / 4000) * 100}%`, width: `${(1600 / 4000) * 100}%` }} />
-                {gameState.troops.map(t => <div key={t.id} className={`absolute bottom-0.5 w-0.5 sm:w-1 h-0.5 sm:h-1 rounded-full ${t.team === 'player' ? 'bg-success' : 'bg-error'}`} style={{ left: `${(t.x / 4000) * 100}%` }} />)}
-             </div>
+      {/* Main Game Surface */}
+      <div className={`relative w-full h-full flex-1 ${targetingAbility ? 'cursor-crosshair' : ''}`}>
+        <GameCanvas engine={engine} onClick={onCanvasClick} />
+        
+        {/* Targeting Feedback */}
+        {targetingAbility && (
+          <div className="absolute top-24 left-1/2 -translate-x-1/2 z-50 animate-pulse pointer-events-none">
+              <div className="px-6 py-3 glass-panel bg-gold/30 border-gold rounded-full shadow-[0_0_50px_rgba(226,183,89,0.5)]">
+                  <span className="text-white font-black uppercase tracking-widest text-sm sm:text-lg italic">Select Target for {targetingAbility}</span>
+              </div>
           </div>
+        )}
 
-          <GameOverOverlay status={gameState.status} onRestart={() => engine.reset()} onExit={() => window.location.href = '/'} />
+        {!isStarted && <LobbyOverlay roomId={roomId} isHost={isHost} onCopy={() => {}} onStartCpu={handleStartCpu} />}
+        <GameOverOverlay status={gameState.status} onRestart={() => engine.reset()} onExit={() => window.location.href = '/'} />
 
-          {/* Staging Commands - Repositioned for Mobile */}
-          {isStarted && (
-            <div className="absolute bottom-2 left-2 sm:bottom-6 sm:left-6 flex flex-col gap-1 sm:gap-2 pointer-events-auto">
-               <button onClick={() => handleCommand('charge')} className="px-3 py-2 sm:px-6 sm:py-3 bg-success text-white text-[8px] sm:text-xs font-black uppercase tracking-widest rounded-lg hover:scale-105 active:scale-95 transition-all shadow-lg">CHARGE</button>
-               <button onClick={() => handleCommand('retreat')} className="px-3 py-2 sm:px-6 sm:py-3 bg-error text-white text-[8px] sm:text-xs font-black uppercase tracking-widest rounded-lg hover:scale-105 active:scale-95 transition-all shadow-lg">RETREAT</button>
+        {/* Tactical Command Buttons (Bottom Left/Right) */}
+        {isStarted && (
+          <>
+            <div className="absolute bottom-32 left-4 z-40 flex flex-col gap-2">
+               <button onClick={() => handleCommand('charge')} className="w-16 h-16 sm:w-24 sm:h-24 rounded-full bg-success/80 border-4 border-success shadow-2xl flex items-center justify-center text-white font-black text-[10px] sm:text-xs uppercase tracking-widest hover:scale-105 active:scale-90 transition-all">CHARGE</button>
+               <button onClick={() => handleCommand('retreat')} className="w-16 h-16 sm:w-24 sm:h-24 rounded-full bg-error/80 border-4 border-error shadow-2xl flex items-center justify-center text-white font-black text-[10px] sm:text-xs uppercase tracking-widest hover:scale-105 active:scale-90 transition-all">RETREAT</button>
+            </div>
+
+            {/* Minimap - Floating Top Right */}
+            <div className="absolute top-4 right-20 w-32 h-8 glass-panel rounded overflow-hidden border-white/10 pointer-events-none hidden sm:block">
+              <div className="relative w-full h-full bg-black/40 backdrop-blur-md">
+                  <div className="absolute top-0 h-full border border-gold/40 bg-gold/5" style={{ left: `${(gameState.cameraX / 4000) * 100}%`, width: `${(1600 / 4000) * 100}%` }} />
+                  {gameState.troops.map(t => <div key={t.id} className={`absolute bottom-0.5 w-0.5 h-0.5 rounded-full ${t.team === 'player' ? 'bg-success' : 'bg-error'}`} style={{ left: `${(t.x / 4000) * 100}%` }} />)}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Mobile-Native Bottom Menu System */}
+      {isStarted && (
+        <div className="w-full bg-[#09090b] border-t border-white/10 px-4 pb-8 pt-4 z-50">
+          
+          {/* Sub-menu Overlays */}
+          {activeTab === 'recruit' && (
+            <div className="absolute bottom-[140px] inset-x-4 bg-black/90 backdrop-blur-2xl border border-white/10 rounded-[2rem] p-6 grid grid-cols-3 gap-4 animate-slide-up shadow-2xl">
+              {[
+                { type: 'basic', name: 'Knight', cost: TROOP_STATS.BASIC.cost, asset: 'knight' },
+                { type: 'archer', name: 'Archer', cost: TROOP_STATS.ARCHER.cost, asset: 'archer' },
+                { type: 'berserker', name: 'Slayer', cost: TROOP_STATS.BERSERKER.cost, asset: 'berserker' },
+                { type: 'fire_archer', name: 'Fire', cost: TROOP_STATS.FIRE_ARCHER.cost, asset: 'archer' },
+                { type: 'crossman', name: 'Cross', cost: TROOP_STATS.CROSSMAN.cost, asset: 'archer' },
+                { type: 'hero', name: 'HERO', cost: TROOP_STATS.HERO.cost, asset: 'knight' },
+              ].map((unit) => {
+                const currentCount = gameState.troops.filter(t => t.team === (isHost ? 'player' : 'opponent') && t.type === unit.type).length;
+                const isAtMax = currentCount >= (TROOP_STATS[unit.type.toUpperCase() as any]?.maxCount || 0);
+                const canAfford = myGold >= unit.cost;
+
+                return (
+                  <button
+                    key={unit.type}
+                    onClick={() => handleSpawn(unit.type as TroopType)}
+                    disabled={!canAfford || isAtMax}
+                    className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white/5 border border-white/5 active:bg-white/10 active:scale-95 transition-all disabled:opacity-30"
+                  >
+                    <img src={`/assets/${unit.asset}.png`} className="w-10 h-10 object-contain mb-2" />
+                    <span className="text-[10px] font-bold text-white/80 uppercase">{unit.name}</span>
+                    <span className="text-[8px] font-black text-gold">${unit.cost}</span>
+                  </button>
+                );
+              })}
+              <button onClick={handleUpgrade} disabled={(isHost ? gameState.playerCastle.level >= 3 : gameState.opponentCastle.level >= 3)} className="col-span-3 py-4 bg-gold/20 border border-gold/40 rounded-xl text-gold font-black text-xs uppercase tracking-widest">
+                UPGRADE CASTLE (LVL {(isHost ? gameState.playerCastle.level : gameState.opponentCastle.level)})
+              </button>
             </div>
           )}
 
-          {/* Abilities Bar - Scrollable/Wrap on Mobile */}
-          {isStarted && (
-            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex flex-nowrap sm:flex-wrap justify-start sm:justify-center gap-1 sm:gap-2 max-w-[90%] sm:max-w-[600px] pointer-events-auto overflow-x-auto no-scrollbar p-1">
+          {activeTab === 'spells' && (
+            <div className="absolute bottom-[140px] inset-x-4 bg-black/90 backdrop-blur-2xl border border-white/10 rounded-[2rem] p-6 grid grid-cols-2 gap-4 animate-slide-up shadow-2xl">
                {(['meteor', 'lightning', 'iceFreeze', 'moon', 'superMeteor', 'heal', 'superHeal', 'shield'] as const).map(id => {
                  const abilities = isHost ? gameState.playerAbilities : gameState.opponentAbilities;
                  const data = abilities[id];
@@ -191,7 +216,7 @@ export default function RoomPage({ params }: { params: { id: string } }) {
                     key={id}
                     onClick={() => handleAbility(id)}
                     disabled={!isReady}
-                    className={`flex-shrink-0 px-2 py-1.5 sm:px-4 sm:py-2 glass-panel rounded-lg text-[6px] sm:text-[8px] font-black uppercase tracking-widest transition-all ${isReady ? `${colors[id] || 'text-white'} border-white/20 active:scale-90` : 'opacity-20 scale-90'}`}
+                    className={`py-4 rounded-xl border border-white/10 font-black text-[10px] uppercase tracking-widest transition-all ${isReady ? `${colors[id] || 'text-white'} bg-white/5 active:bg-white/10` : 'opacity-20'}`}
                    >
                      {name}
                    </button>
@@ -199,45 +224,27 @@ export default function RoomPage({ params }: { params: { id: string } }) {
                })}
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Troop Spawner - Scrollable on Mobile */}
-      <div className="max-w-[1400px] w-full mt-4 sm:mt-6 flex overflow-x-auto no-scrollbar gap-2 sm:grid sm:grid-cols-7 sm:gap-3 px-2 pb-4">
-        {[
-          { type: 'basic', name: 'Knight', cost: TROOP_STATS.BASIC.cost, max: TROOP_STATS.BASIC.maxCount, asset: 'knight' },
-          { type: 'archer', name: 'Archer', cost: TROOP_STATS.ARCHER.cost, max: TROOP_STATS.ARCHER.maxCount, asset: 'archer' },
-          { type: 'berserker', name: 'Slayer', cost: TROOP_STATS.BERSERKER.cost, max: TROOP_STATS.BERSERKER.maxCount, asset: 'berserker' },
-          { type: 'fire_archer', name: 'Fire', cost: TROOP_STATS.FIRE_ARCHER.cost, max: TROOP_STATS.FIRE_ARCHER.maxCount, asset: 'archer' },
-          { type: 'crossman', name: 'Cross', cost: TROOP_STATS.CROSSMAN.cost, max: TROOP_STATS.CROSSMAN.maxCount, asset: 'archer' },
-          { type: 'hero', name: 'HERO', cost: TROOP_STATS.HERO.cost, max: TROOP_STATS.HERO.maxCount, asset: 'knight' },
-        ].map((unit) => {
-          const currentCount = gameState.troops.filter(t => t.team === (isHost ? 'player' : 'opponent') && t.type === unit.type).length;
-          const isAtMax = currentCount >= unit.max;
-
-          return (
-            <button
-              key={unit.type}
-              onClick={() => handleSpawn(unit.type as TroopType)}
-              disabled={!isStarted || myGold < unit.cost || isAtMax}
-              className="flex-shrink-0 w-24 sm:w-auto glass-button h-24 sm:h-28 flex flex-col items-center justify-center gap-1 group relative overflow-hidden rounded-xl sm:rounded-2xl disabled:opacity-20 active:scale-95"
+          
+          {/* Main Action Tabs */}
+          <div className="flex gap-4">
+            <button 
+              onClick={() => setActiveTab(activeTab === 'recruit' ? 'none' : 'recruit')}
+              className={`flex-1 py-5 rounded-2xl flex flex-col items-center gap-1 transition-all ${activeTab === 'recruit' ? 'bg-gold text-black shadow-[0_0_30px_rgba(226,183,89,0.4)]' : 'bg-white/5 text-white/60 border border-white/10'}`}
             >
-              <img src={`/assets/${unit.asset}.png`} className="w-8 h-8 sm:w-12 sm:h-12 object-contain group-hover:scale-110 transition-transform" />
-              <div className="text-center">
-                <span className="block text-[8px] sm:text-[10px] font-bold uppercase tracking-widest text-white/80">{unit.name}</span>
-                <span className={`text-[6px] sm:text-[8px] font-black ${isAtMax ? 'text-error' : 'text-white/30'}`}>[{currentCount}/{unit.max}]</span>
-              </div>
+              <span className="text-xs font-black uppercase tracking-[0.2em]">RECRUIT</span>
+              <span className="text-[8px] font-bold opacity-60">Troops & Upgrades</span>
             </button>
-          );
-        })}
 
-        <button onClick={handleUpgrade} disabled={!isStarted || (isHost ? gameState.playerCastle.level >= 3 : gameState.opponentCastle.level >= 3)} className="flex-shrink-0 w-24 sm:w-auto glass-button h-24 sm:h-28 flex flex-col items-center justify-center gap-1 sm:gap-2 group rounded-xl sm:rounded-2xl disabled:opacity-20 active:scale-95">
-            <div className="w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg bg-white/5 border border-white/10 group-hover:border-gold/50 transition-colors">
-                <svg className="w-3 h-3 sm:w-4 sm:h-4 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 11l7-7 7 7M5 19l7-7 7 7" /></svg>
-            </div>
-            <span className="block text-[8px] sm:text-[10px] font-bold uppercase tracking-widest text-white/80">Rank {(isHost ? gameState.playerCastle.level : gameState.opponentCastle.level)}</span>
-        </button>
-      </div>
+            <button 
+              onClick={() => setActiveTab(activeTab === 'spells' ? 'none' : 'spells')}
+              className={`flex-1 py-5 rounded-2xl flex flex-col items-center gap-1 transition-all ${activeTab === 'spells' ? 'bg-gold text-black shadow-[0_0_30px_rgba(226,183,89,0.4)]' : 'bg-white/5 text-white/60 border border-white/10'}`}
+            >
+              <span className="text-xs font-black uppercase tracking-[0.2em]">SPELLS</span>
+              <span className="text-[8px] font-bold opacity-60">Offense & Defense</span>
+            </button>
+          </div>
+        </div>
+      )}
 
     </main>
   );

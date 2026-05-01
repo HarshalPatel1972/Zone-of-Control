@@ -72,6 +72,40 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ engine, onClick }) => {
     }
   };
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    isDragging.current = true;
+    lastX.current = e.touches[0].clientX;
+    hasMoved.current = false;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging.current) return;
+    const dx = e.touches[0].clientX - lastX.current;
+    if (Math.abs(dx) > dragThreshold) {
+        hasMoved.current = true;
+        const rect = canvasRef.current?.getBoundingClientRect();
+        if (rect) {
+            const scaleX = 1600 / rect.width;
+            engine.setCameraX(engine.getState().cameraX - dx * scaleX);
+        }
+        lastX.current = e.touches[0].clientX;
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    isDragging.current = false;
+    if (!hasMoved.current) {
+        const rect = canvasRef.current?.getBoundingClientRect();
+        if (rect && onClick) {
+            const touch = e.changedTouches[0];
+            const scaleX = 1600 / rect.width;
+            const x = (touch.clientX - rect.left) * scaleX + engine.getState().cameraX;
+            const y = (touch.clientY - rect.top) * (900 / rect.height);
+            onClick(x, y);
+        }
+    }
+  };
+
   return (
     <div className="relative w-full h-full overflow-hidden bg-[#09090b]">
       <canvas
@@ -81,8 +115,11 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ engine, onClick }) => {
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
         onMouseLeave={() => isDragging.current = false}
-        className="w-full h-full object-contain cursor-grab active:cursor-grabbing"
+        className="w-full h-full object-contain cursor-grab active:cursor-grabbing touch-none"
       />
     </div>
   );
