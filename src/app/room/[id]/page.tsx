@@ -50,13 +50,17 @@ export default function RoomPage({ params }: { params: { id: string } }) {
   }, [role, engine]);
 
   useEffect(() => {
-    if (isGameStarted) setIsStarted(true);
-  }, [isGameStarted]);
+    if (isGameStarted) {
+        engine.start();
+        setIsStarted(true);
+    }
+  }, [isGameStarted, engine]);
 
   const isHost = role === 'host' || isTraining;
 
   const handleStartCpu = (diff: any, mode: any) => {
     engine.setMode(mode || 'normal');
+    engine.start();
     setIsStarted(true);
     setIsTraining(true);
     setGameState(engine.getState());

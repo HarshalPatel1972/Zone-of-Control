@@ -79,7 +79,7 @@ export class GameEngine {
       objective: { x: 2000, y: CANVAS_HEIGHT - 100, radius: 100, control: 0, owner: 'neutral' },
       gold: 500, opponentGold: 500, // START WITH MORE GOLD
       lastIncomeTime: Date.now(), lastAiDecisionTime: Date.now(),
-      status: 'playing', isPaused: false, isMultiplayer: false, screenShake: 0,
+      status: 'lobby', isPaused: false, isMultiplayer: false, screenShake: 0,
       cpuDifficulty: 'medium', weather: 'clear', weatherTimer: Date.now(),
       playerAbilities: { ...abilityInit }, opponentAbilities: { ...abilityInit },
       stats: { player: { ...statInit }, opponent: { ...statInit } },
@@ -108,6 +108,12 @@ export class GameEngine {
         this.state.opponentCastle.width = 400;
         this.state.opponentCastle.height = 600;
     }
+  }
+
+  public start() {
+    this.state.status = 'playing';
+    this.state.lastIncomeTime = Date.now();
+    this.state.lastAiDecisionTime = Date.now();
   }
 
   public reset() {
