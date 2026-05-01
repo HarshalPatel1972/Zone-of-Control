@@ -31,8 +31,8 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
     
     // Auto-start training if params exist
     if (sParams.training === 'true') {
-        const mode = sParams.mode as any || 'normal';
-        const diff = sParams.diff as any || 'medium';
+        const mode = (sParams.mode as 'normal' | 'castle_wars' | 'super_castle_wars') || 'normal';
+        const diff = (sParams.diff as 'easy' | 'medium' | 'hard') || 'medium';
         engine.setMode(mode);
         engine.setCpuDifficulty(diff);
         engine.start();
@@ -58,7 +58,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
         const targetX = parts[2] ? parseInt(parts[2]) : undefined;
         engine.useAbility(team, abilityType, targetX);
     }
-    else if (type.startsWith('cmd_')) engine.issueCommand(team, type.split('_')[1] as any);
+    else if (type.startsWith('cmd_')) engine.issueCommand(team, type.split('_')[1] as 'charge' | 'retreat');
     else if (type.startsWith('emote_')) engine.triggerEmote(team, type.split('_')[1]);
     else engine.spawnRemoteTroop(team, type as TroopType);
     setGameState(engine.getState());
@@ -83,7 +83,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
 
   const isHost = role === 'host' || isTraining;
 
-  const handleStartCpu = (diff: any, mode: any) => {
+  const handleStartCpu = (diff: 'easy' | 'medium' | 'hard', mode: 'normal' | 'castle_wars' | 'super_castle_wars') => {
     engine.setMode(mode || 'normal');
     engine.start();
     setIsStarted(true);
@@ -296,9 +296,11 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                         { type: 'angel', name: 'ANGEL', asset: 'angel' },
                         { type: 'tank', name: 'TANK', asset: 'tank' },
                     ].map((unit) => {
-                        const cost = (TROOP_STATS as any)[unit.type.toUpperCase()]?.cost || 0;
+                        const troopTypeKey = unit.type.toUpperCase() as keyof typeof TROOP_STATS;
+                        const stats = TROOP_STATS[troopTypeKey];
+                        const cost = stats?.cost || 0;
                         const currentCount = gameState.troops.filter(t => t.team === (isHost ? 'player' : 'opponent') && t.type === unit.type).length;
-                        const maxCount = (TROOP_STATS as any)[unit.type.toUpperCase()]?.maxCount || 0;
+                        const maxCount = stats?.maxCount || 0;
                         const isAtMax = currentCount >= maxCount;
 
                         return (
@@ -339,7 +341,8 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                                 { type: 'angel', name: 'ANGEL', asset: 'angel' },
                                 { type: 'tank', name: 'TANK', asset: 'tank' },
                             ].map((unit) => {
-                                const cost = (TROOP_STATS as any)[unit.type.toUpperCase()]?.cost || 0;
+                                const troopTypeKey = unit.type.toUpperCase() as keyof typeof TROOP_STATS;
+                                const cost = TROOP_STATS[troopTypeKey]?.cost || 0;
                                 return (
                                 <button key={unit.type} onClick={() => handleSpawn(unit.type as TroopType)} className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white/5 border border-white/5 active:bg-white/10 transition-all">
                                     <img src={`/assets/${unit.asset}.png`} className="w-10 h-10 object-contain mb-2" />

@@ -160,6 +160,11 @@ body::after {
   animation: float 4s ease-in-out infinite;
 }
 
+@keyframes slowZoom {
+  from { transform: scale(1.05); }
+  to { transform: scale(1.15); }
+}
+
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }

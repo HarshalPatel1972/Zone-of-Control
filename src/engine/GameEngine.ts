@@ -1,4 +1,4 @@
-import { GameState, Troop, Castle, Team, Particle, TroopType, CpuDifficulty, Projectile, AbilityType, WeatherType, Emote, MatchStats } from './types';
+import { GameState, Troop, Castle, Team, Particle, TroopType, CpuDifficulty, Projectile, AbilityType, Emote } from './types';
 
 export const CANVAS_WIDTH = 6000; 
 export const CANVAS_HEIGHT = 900;
@@ -319,7 +319,7 @@ export class GameEngine {
       if (troop.damageFlashTimer > 0) troop.damageFlashTimer--; else troop.isTakingDamage = false;
       const enemyCastle = troop.team === 'player' ? this.state.opponentCastle : this.state.playerCastle;
       const currentRange = troop.attackRange;
-      let currentSpeed = troop.state === 'advancing' ? troop.speed : (troop.state === 'retreating' ? -troop.speed : 0);
+      const currentSpeed = troop.state === 'advancing' ? troop.speed : (troop.state === 'retreating' ? -troop.speed : 0);
       const distToCastle = Math.abs(troop.x - (troop.team === 'player' ? enemyCastle.x : enemyCastle.x + enemyCastle.width));
       if (distToCastle <= currentRange) { isBlocked = true; target = enemyCastle; }
       this.state.troops.forEach((other) => {
@@ -376,7 +376,7 @@ export class GameEngine {
     this.drawObjective(ctx);
     this.drawCastle(ctx, this.state.playerCastle);
     this.drawCastle(ctx, this.state.opponentCastle);
-    this.state.extraEnemyCastles.forEach(c => this.drawCastle(ctx, c as any));
+    this.state.extraEnemyCastles.forEach(c => this.drawCastle(ctx, c as unknown as Castle));
     this.state.troops.forEach(t => this.drawTroop(ctx, t)); 
     this.state.projectiles.forEach(p => this.drawProjectile(ctx, p));
     this.visualEffects.forEach(e => this.drawVisualEffect(ctx, e));

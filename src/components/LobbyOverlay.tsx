@@ -9,9 +9,10 @@ interface LobbyOverlayProps {
   onStartCpu: (diff: 'easy' | 'medium' | 'hard', mode: 'normal' | 'castle_wars' | 'super_castle_wars') => void;
 }
 
-export const LobbyOverlay: React.FC<LobbyOverlayProps> = ({ roomId, isHost, onCopy, onStartCpu }) => {
+export const LobbyOverlay: React.FC<LobbyOverlayProps> = ({ roomId: _roomId, isHost: _isHost, onCopy, onStartCpu }) => {
   const [copied, setCopied] = useState(false);
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
+  const [selectedMapMode, setSelectedMapMode] = useState<'normal' | 'castle_wars' | 'super_castle_wars'>('normal');
   const lobbyUrl = typeof window !== 'undefined' ? window.location.href : '';
 
   const handleCopy = () => {
@@ -30,7 +31,7 @@ export const LobbyOverlay: React.FC<LobbyOverlayProps> = ({ roomId, isHost, onCo
             Deploying <span className="text-white/40">Force</span>
           </h2>
           <p className="text-white/50 text-sm sm:text-base font-light tracking-wide italic">
-            "Strategy begins long before the first arrow is fired."
+            &quot;Strategy begins long before the first arrow is fired.&quot;
           </p>
         </div>
 
@@ -73,8 +74,10 @@ export const LobbyOverlay: React.FC<LobbyOverlayProps> = ({ roomId, isHost, onCo
                 {(['normal', 'castle_wars', 'super_castle_wars'] as const).map(m => (
                     <button
                         key={m}
-                        onClick={() => (window as any).selectedMode = m}
-                        className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest rounded-xl border bg-white/5 border-white/10 text-white/60 hover:border-gold/50 focus:border-gold focus:text-gold transition-all"
+                        onClick={() => setSelectedMapMode(m)}
+                        className={`px-4 py-3 text-[10px] font-bold uppercase tracking-widest rounded-xl border transition-all ${
+                          selectedMapMode === m ? 'bg-gold/10 border-gold text-gold' : 'bg-white/5 border-white/10 text-white/60 hover:border-gold/50'
+                        }`}
                     >
                         {m.replace(/_/g, ' ')}
                     </button>
@@ -82,7 +85,7 @@ export const LobbyOverlay: React.FC<LobbyOverlayProps> = ({ roomId, isHost, onCo
             </div>
 
             <button
-              onClick={() => onStartCpu(difficulty, (window as any).selectedMode || 'normal')}
+              onClick={() => onStartCpu(difficulty, selectedMapMode)}
               className="glass-button w-full py-4 text-sm font-bold tracking-widest hover:bg-white/10 transition-colors"
             >
               START TRAINING

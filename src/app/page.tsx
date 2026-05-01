@@ -167,12 +167,6 @@ export default function LandingPage() {
         </div>
       </div>
 
-      <style jsx global>{`
-        @keyframes slowZoom {
-          from { transform: scale(1.05); }
-          to { transform: scale(1.15); }
-        }
-      `}</style>
     </main>
   );
 }
