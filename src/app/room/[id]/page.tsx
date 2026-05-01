@@ -8,8 +8,9 @@ import { LobbyOverlay } from '@/components/LobbyOverlay';
 import { GameOverOverlay } from '@/components/GameOverOverlay';
 import { useMultiplayer } from '@/hooks/useMultiplayer';
 
-export default function RoomPage({ params }: { params: Promise<{ id: string }> }) {
+export default function RoomPage({ params, searchParams }: { params: Promise<{ id: string }>, searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   const { id: roomId } = React.use(params);
+  const sParams = React.use(searchParams);
   const [engine] = useState(() => new GameEngine());
   const [gameState, setGameState] = useState<GameState>(engine.getState());
   const [isStarted, setIsStarted] = useState(false);
@@ -21,8 +22,20 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
     engine.reset();
     setIsStarted(false);
     setIsTraining(false);
+    
+    // Auto-start training if params exist
+    if (sParams.training === 'true') {
+        const mode = sParams.mode as any || 'normal';
+        const diff = sParams.diff as any || 'medium';
+        engine.setMode(mode);
+        engine.setCpuDifficulty(diff);
+        engine.start();
+        setIsStarted(true);
+        setIsTraining(true);
+    }
+    
     setGameState(engine.getState());
-  }, [roomId, engine]);
+  }, [roomId, engine, sParams]);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 1024);
