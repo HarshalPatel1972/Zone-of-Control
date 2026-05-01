@@ -8,8 +8,8 @@ import { LobbyOverlay } from '@/components/LobbyOverlay';
 import { GameOverOverlay } from '@/components/GameOverOverlay';
 import { useMultiplayer } from '@/hooks/useMultiplayer';
 
-export default function RoomPage({ params }: { params: { id: string } }) {
-  const roomId = params?.id || 'UNKNOWN';
+export default function RoomPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id: roomId } = React.use(params);
   const [engine] = useState(() => new GameEngine());
   const [gameState, setGameState] = useState<GameState>(engine.getState());
   const [isStarted, setIsStarted] = useState(false);
