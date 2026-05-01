@@ -43,6 +43,7 @@ export interface Troop {
   state: 'idle' | 'advancing' | 'retreating';
   isFrozen: boolean;
   freezeTimer: number;
+  lastSpecialTime: number;
 }
 
 export interface Projectile {

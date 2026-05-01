@@ -1,19 +1,19 @@
 import { GameState, Troop, Castle, Team, Particle, TroopType, CpuDifficulty, Projectile, AbilityType, WeatherType, Emote, MatchStats } from './types';
 
-export const CANVAS_WIDTH = 6000; // Increased for Castle Wars
+export const CANVAS_WIDTH = 6000; 
 export const CANVAS_HEIGHT = 900;
 export const VIEW_WIDTH = 1600;
 
 export const TROOP_STATS = {
-  BASIC: { cost: 20, health: 120, attackDamage: 12, attackRange: 50, attackCooldown: 800, speed: 2.8, size: 55, asset: 'knight', maxCount: 20 },
-  ARCHER: { cost: 45, health: 80, attackDamage: 25, attackRange: 450, attackCooldown: 1500, speed: 2.2, size: 55, asset: 'archer', maxCount: 15 },
-  BERSERKER: { cost: 75, health: 320, attackDamage: 40, attackRange: 60, attackCooldown: 700, speed: 3.5, size: 70, asset: 'berserker', maxCount: 10 },
-  HERO: { cost: 300, health: 1000, attackDamage: 60, attackRange: 80, attackCooldown: 600, speed: 4.0, size: 85, asset: 'hero', maxCount: 1 },
-  FIRE_ARCHER: { cost: 100, health: 120, attackDamage: 35, attackRange: 500, attackCooldown: 1800, speed: 2.0, size: 60, asset: 'archer', maxCount: 8 },
-  CROSSMAN: { cost: 120, health: 180, attackDamage: 50, attackRange: 350, attackCooldown: 2200, speed: 1.8, size: 65, asset: 'archer', maxCount: 6 },
-  DRAGON: { cost: 500, health: 1500, attackDamage: 100, attackRange: 150, attackCooldown: 2000, speed: 3.0, size: 120, asset: 'dragon', maxCount: 2 },
-  ANGEL: { cost: 400, health: 800, attackDamage: 40, attackRange: 400, attackCooldown: 1200, speed: 4.5, size: 90, asset: 'angel', maxCount: 3 },
-  TANK: { cost: 250, health: 2500, attackDamage: 20, attackRange: 40, attackCooldown: 1000, speed: 1.5, size: 100, asset: 'tank', maxCount: 5 }
+  BASIC: { cost: 20, health: 150, attackDamage: 15, attackRange: 50, attackCooldown: 900, speed: 2.8, size: 55, asset: 'knight', maxCount: 20 },
+  ARCHER: { cost: 45, health: 100, attackDamage: 30, attackRange: 450, attackCooldown: 1500, speed: 2.2, size: 55, asset: 'archer', maxCount: 15 },
+  BERSERKER: { cost: 75, health: 450, attackDamage: 55, attackRange: 60, attackCooldown: 750, speed: 3.5, size: 70, asset: 'berserker', maxCount: 10 },
+  HERO: { cost: 300, health: 1500, attackDamage: 80, attackRange: 80, attackCooldown: 600, speed: 4.0, size: 85, asset: 'hero', maxCount: 1 },
+  FIRE_ARCHER: { cost: 100, health: 150, attackDamage: 45, attackRange: 500, attackCooldown: 1800, speed: 2.0, size: 60, asset: 'archer', maxCount: 8 },
+  CROSSMAN: { cost: 120, health: 250, attackDamage: 70, attackRange: 350, attackCooldown: 2200, speed: 1.8, size: 65, asset: 'archer', maxCount: 6 },
+  DRAGON: { cost: 500, health: 2500, attackDamage: 150, attackRange: 150, attackCooldown: 2000, speed: 3.0, size: 130, asset: 'dragon', maxCount: 2 },
+  ANGEL: { cost: 400, health: 1200, attackDamage: 50, attackRange: 400, attackCooldown: 1200, speed: 4.8, size: 100, asset: 'angel', maxCount: 3 },
+  TANK: { cost: 250, health: 5000, attackDamage: 25, attackRange: 40, attackCooldown: 1200, speed: 1.4, size: 110, asset: 'tank', maxCount: 5 }
 };
 
 export const CASTLE_UPGRADES = {
@@ -23,7 +23,7 @@ export const CASTLE_UPGRADES = {
 
 interface VisualEffect {
     id: string;
-    type: 'lightning' | 'moon' | 'ice' | 'shockwave';
+    type: 'lightning' | 'moon' | 'ice' | 'shockwave' | 'fire_breath';
     x: number;
     y: number;
     life: number;
@@ -215,7 +215,6 @@ export class GameEngine {
       castle.activeShield = 10000; 
     } else if (type === 'iceFreeze') {
         this.visualEffects.push({ id: Math.random().toString(), type: 'ice', x, y: CANVAS_HEIGHT - 100, life: 1, maxLife: 1, color: '#64D2FF' });
-        // CRITICAL FIX: Ensure only opponents to the caller are frozen
         const targetTeam = team === 'player' ? 'opponent' : 'player';
         this.state.troops.forEach(t => {
             if (t.team === targetTeam && Math.abs(t.x - x) < 500) {
@@ -260,7 +259,7 @@ export class GameEngine {
       attackDamage: stats.attackDamage, attackRange: stats.attackRange, attackCooldown: stats.attackCooldown,
       lastAttackTime: 0, isAttacking: false, isTakingDamage: false, damageFlashTimer: 0,
       bobbingTimer: Math.random() * Math.PI * 2, kills: 0, rank: 0, state: 'idle',
-      isFrozen: false, freezeTimer: 0
+      isFrozen: false, freezeTimer: 0, lastSpecialTime: Date.now()
     };
     this.state.troops.push(newTroop);
     this.state.stats[team].troopsSpawned++;
@@ -283,7 +282,6 @@ export class GameEngine {
       if ('activeShield' in c && c.activeShield > 0) c.activeShield -= 16.67;
     });
 
-    // Castle Wars progression
     if (this.state.mode === 'castle_wars') {
         if (this.state.opponentCastle.health <= 0 && this.state.extraEnemyCastles.length > 0) {
             const next = this.state.extraEnemyCastles.shift()!;
@@ -291,7 +289,6 @@ export class GameEngine {
             this.state.opponentCastle.health = next.health;
             this.state.opponentCastle.maxHealth = next.maxHealth;
             this.state.opponentCastle.secondaryHealth = next.health;
-            // Increase difficulty
             this.state.opponentGold += 500;
         }
     }
@@ -302,6 +299,24 @@ export class GameEngine {
     this.state.troops.forEach(t => {
       if (t.secondaryHealth > t.health) t.secondaryHealth -= (t.secondaryHealth - t.health) * 0.1;
       if (t.isFrozen) { t.freezeTimer -= 16.67; if (t.freezeTimer <= 0) t.isFrozen = false; }
+      
+      // UNIQUE SPECIAL ATTACKS (Every 15s)
+      if (now - t.lastSpecialTime >= 15000) {
+          if (t.type === 'dragon') {
+              this.visualEffects.push({ id: Math.random().toString(), type: 'fire_breath', x: t.x + (t.team === 'player' ? 100 : -100), y: t.y - 50, life: 1, maxLife: 1, color: '#FF453A' });
+              this.state.troops.filter(other => other.team !== t.team && Math.abs(other.x - t.x) < 300).forEach(other => { other.health -= 300; });
+          } else if (t.type === 'angel') {
+              this.visualEffects.push({ id: Math.random().toString(), type: 'lightning', x: t.x + (t.team === 'player' ? 200 : -200), y: 0, life: 1, maxLife: 1, color: '#FFD60A', points: [{x: t.x, y: 0}, {x: t.x + 100, y: 300}, {x: t.x, y: CANVAS_HEIGHT}] });
+              this.state.troops.filter(other => other.team !== t.team && Math.abs(other.x - t.x) < 400).forEach(other => { other.health -= 200; other.isFrozen = true; other.freezeTimer = 2000; });
+          } else if (t.type === 'tank') {
+              this.visualEffects.push({ id: Math.random().toString(), type: 'shockwave', x: t.x, y: CANVAS_HEIGHT - 100, life: 1, maxLife: 1, color: '#E2B759' });
+              this.state.troops.filter(other => other.team !== t.team && Math.abs(other.x - t.x) < 250).forEach(other => { 
+                  other.x += (t.team === 'player' ? 150 : -150); 
+                  other.health -= 150; 
+              });
+          }
+          t.lastSpecialTime = now;
+      }
     });
 
     if (now - this.state.lastIncomeTime >= 1000) {
@@ -368,18 +383,16 @@ export class GameEngine {
     this.state.troops = this.state.troops.filter(t => t.health > 0);
 
     if (this.state.opponentCastle.health <= 0) { 
-        if (this.state.mode === 'castle_wars' && this.state.extraEnemyCastles.length > 0) {
-            // Already handled above
-        } else {
-            this.state.status = 'victory'; this.state.isPaused = true; 
-        }
+        if (this.state.mode === 'castle_wars' && this.state.extraEnemyCastles.length > 0) {} 
+        else { this.state.status = 'victory'; this.state.isPaused = true; }
     }
     else if (this.state.playerCastle.health <= 0) { this.state.status = 'defeat'; this.state.isPaused = true; }
   }
 
   private handleAiDecision(now: number) {
     const gold = this.state.opponentGold;
-    if (gold >= 250) { this.createTroop('opponent', 'tank'); this.state.opponentGold -= 250; }
+    if (gold >= 500) { this.createTroop('opponent', 'dragon'); this.state.opponentGold -= 500; }
+    else if (gold >= 250) { this.createTroop('opponent', 'tank'); this.state.opponentGold -= 250; }
     else if (gold >= 75) { this.createTroop('opponent', 'berserker'); this.state.opponentGold -= 75; }
     else if (gold >= 20) { this.createTroop('opponent', 'basic'); this.state.opponentGold -= 20; }
     this.issueCommand('opponent', 'charge');
@@ -415,14 +428,10 @@ export class GameEngine {
 
   private spawnProjectile(attacker: Troop, target: Troop | Castle) {
     const dx = target.x - attacker.x;
-    const g = 0.25; 
-    const t = 60; 
-    const vx = dx / t;
+    const g = 0.25; const t = 60; const vx = dx / t;
     const vy = (60 - 0.5 * g * t * t) / t;
-
     this.state.projectiles.push({
-      id: Math.random().toString(), x: attacker.x, y: attacker.y - 60,
-      vx: vx, vy: vy,
+      id: Math.random().toString(), x: attacker.x, y: attacker.y - 60, vx, vy,
       team: attacker.team, damage: attacker.attackDamage, type: 'arrow'
     });
   }
@@ -439,7 +448,6 @@ export class GameEngine {
     this.drawCastle(ctx, this.state.playerCastle);
     this.drawCastle(ctx, this.state.opponentCastle);
     this.state.extraEnemyCastles.forEach(c => this.drawCastle(ctx, c as any));
-
     this.state.troops.forEach(t => this.drawTroop(ctx, t)); 
     this.state.projectiles.forEach(p => this.drawProjectile(ctx, p));
     this.visualEffects.forEach(e => this.drawVisualEffect(ctx, e));
@@ -449,8 +457,7 @@ export class GameEngine {
   }
 
   private drawVisualEffect(ctx: CanvasRenderingContext2D, e: VisualEffect) {
-    ctx.save();
-    ctx.globalAlpha = e.life;
+    ctx.save(); ctx.globalAlpha = e.life;
     if (e.type === 'lightning' && e.points) {
         ctx.strokeStyle = '#fff'; ctx.lineWidth = 4; ctx.shadowBlur = 20; ctx.shadowColor = e.color;
         ctx.beginPath(); ctx.moveTo(e.points[0].x, e.points[0].y);
@@ -460,7 +467,6 @@ export class GameEngine {
         const grad = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, 250);
         grad.addColorStop(0, '#fff'); grad.addColorStop(0.3, e.color); grad.addColorStop(1, 'transparent');
         ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(e.x, e.y, 250, 0, Math.PI*2); ctx.fill();
-        ctx.shadowBlur = 40; ctx.shadowColor = e.color; ctx.stroke();
     } else if (e.type === 'ice') {
         ctx.fillStyle = e.color; ctx.shadowBlur = 20; ctx.shadowColor = '#fff';
         for (let i = 0; i < 10; i++) {
@@ -470,6 +476,10 @@ export class GameEngine {
     } else if (e.type === 'shockwave') {
         ctx.strokeStyle = e.color; ctx.lineWidth = 10 * e.life;
         ctx.beginPath(); ctx.ellipse(e.x, e.y, 800 * (1-e.life), 200 * (1-e.life), 0, 0, Math.PI*2); ctx.stroke();
+    } else if (e.type === 'fire_breath') {
+        const grad = ctx.createLinearGradient(e.x, e.y, e.x + 300, e.y);
+        grad.addColorStop(0, '#FF453A'); grad.addColorStop(1, 'transparent');
+        ctx.fillStyle = grad; ctx.fillRect(e.x, e.y, 300, 100);
     }
     ctx.restore();
   }
@@ -521,7 +531,6 @@ export class GameEngine {
         grad.addColorStop(0, 'transparent'); grad.addColorStop(1, '#FF453A');
         ctx.fillStyle = grad; ctx.fillRect(-60, -10, 60, 20);
         ctx.fillStyle = '#FFD60A'; ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI*2); ctx.fill();
-        ctx.shadowBlur = 20; ctx.shadowColor = '#FF453A';
     } else {
         ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-15, 0); ctx.lineTo(0, 0); ctx.stroke();
     }
