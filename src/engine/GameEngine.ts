@@ -1,6 +1,6 @@
 import { GameState, Troop, Castle, Team, Particle, TroopType, CpuDifficulty, Projectile, AbilityType, WeatherType, Emote, MatchStats } from './types';
 
-export const CANVAS_WIDTH = 4000;
+export const CANVAS_WIDTH = 6000; // Increased for Castle Wars
 export const CANVAS_HEIGHT = 900;
 export const VIEW_WIDTH = 1600;
 
@@ -34,7 +34,6 @@ interface VisualEffect {
 
 export class GameEngine {
   private state: GameState;
-  private audioEnabled: boolean = false;
   private assets: Record<string, HTMLImageElement> = {};
   private assetsLoaded: boolean = false;
   private visualEffects: VisualEffect[] = [];
@@ -72,10 +71,12 @@ export class GameEngine {
     const statInit = { goldEarned: 150, troopsSpawned: 0, kills: 0, damageDealt: 0 };
 
     return {
+      mode: 'normal',
       playerCastle: { health: 1200, maxHealth: 1200, secondaryHealth: 1200, x: 100, width: 250, height: 400, team: 'player', level: 1, turretLevel: 0, lastTurretFire: 0, activeShield: 0 },
-      opponentCastle: { health: 1200, maxHealth: 1200, secondaryHealth: 1200, x: CANVAS_WIDTH - 350, width: 250, height: 400, team: 'opponent', level: 1, turretLevel: 0, lastTurretFire: 0, activeShield: 0 },
+      opponentCastle: { health: 1200, maxHealth: 1200, secondaryHealth: 1200, x: 4000 - 350, width: 250, height: 400, team: 'opponent', level: 1, turretLevel: 0, lastTurretFire: 0, activeShield: 0 },
+      extraEnemyCastles: [],
       troops: [], projectiles: [], particles: [], emotes: [],
-      objective: { x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT - 100, radius: 100, control: 0, owner: 'neutral' },
+      objective: { x: 2000, y: CANVAS_HEIGHT - 100, radius: 100, control: 0, owner: 'neutral' },
       gold: 200, opponentGold: 200,
       lastIncomeTime: Date.now(), lastAiDecisionTime: Date.now(),
       status: 'playing', isPaused: false, isMultiplayer: false, screenShake: 0,
@@ -86,8 +87,33 @@ export class GameEngine {
     };
   }
 
+  public setMode(mode: 'normal' | 'castle_wars' | 'super_castle_wars') {
+    this.state.mode = mode;
+    if (mode === 'castle_wars') {
+        this.state.opponentCastle.x = 2000 - 350;
+        this.state.extraEnemyCastles = [
+            { id: 'castle2', x: 4000 - 350, health: 2000, maxHealth: 2000, status: 'alive' },
+            { id: 'castle3', x: 6000 - 350, health: 3500, maxHealth: 3500, status: 'alive' }
+        ];
+    } else if (mode === 'super_castle_wars') {
+        this.state.playerCastle.maxHealth = 5000;
+        this.state.playerCastle.health = 5000;
+        this.state.playerCastle.secondaryHealth = 5000;
+        this.state.playerCastle.width = 400;
+        this.state.playerCastle.height = 600;
+
+        this.state.opponentCastle.maxHealth = 5000;
+        this.state.opponentCastle.health = 5000;
+        this.state.opponentCastle.secondaryHealth = 5000;
+        this.state.opponentCastle.width = 400;
+        this.state.opponentCastle.height = 600;
+    }
+  }
+
   public reset() {
+    const mode = this.state.mode;
     this.state = this.getInitialState();
+    this.setMode(mode);
     this.visualEffects = [];
   }
 
@@ -95,7 +121,8 @@ export class GameEngine {
   public setCpuDifficulty(diff: CpuDifficulty) { this.state.cpuDifficulty = diff; }
   public getState(): GameState { return { ...this.state }; }
   public setCameraX(x: number) { 
-    this.state.cameraX = Math.max(0, Math.min(CANVAS_WIDTH - 1600, x));
+    const maxScroll = this.state.mode === 'castle_wars' ? 6000 - 1600 : 4000 - 1600;
+    this.state.cameraX = Math.max(0, Math.min(maxScroll, x));
     this.state.isAutoCamera = false;
     this.state.lastManualScroll = Date.now();
   }
@@ -134,10 +161,9 @@ export class GameEngine {
     if (now - ability.lastUsed < ability.cooldown) return;
 
     ability.lastUsed = now;
-    const x = targetX ?? (team === 'player' ? CANVAS_WIDTH * 0.7 : CANVAS_WIDTH * 0.3);
+    const x = targetX ?? (team === 'player' ? (this.state.mode === 'castle_wars' ? 5000 : 3000) : 500);
 
     if (type === 'meteor') {
-      const x = targetX ?? (team === 'player' ? CANVAS_WIDTH * 0.7 : CANVAS_WIDTH * 0.3);
       const meteorVX = team === 'player' ? 8 : -8;
       for (let i = 0; i < 8; i++) {
         this.state.projectiles.push({
@@ -149,7 +175,6 @@ export class GameEngine {
       }
       this.state.screenShake = 40;
     } else if (type === 'superMeteor') {
-      const x = targetX ?? (team === 'player' ? CANVAS_WIDTH * 0.7 : CANVAS_WIDTH * 0.3);
       const meteorVX = team === 'player' ? 10 : -10;
       for (let i = 0; i < 15; i++) {
         this.state.projectiles.push({
@@ -190,8 +215,10 @@ export class GameEngine {
       castle.activeShield = 10000; 
     } else if (type === 'iceFreeze') {
         this.visualEffects.push({ id: Math.random().toString(), type: 'ice', x, y: CANVAS_HEIGHT - 100, life: 1, maxLife: 1, color: '#64D2FF' });
+        // CRITICAL FIX: Ensure only opponents to the caller are frozen
+        const targetTeam = team === 'player' ? 'opponent' : 'player';
         this.state.troops.forEach(t => {
-            if (t.team !== team && Math.abs(t.x - x) < 500) {
+            if (t.team === targetTeam && Math.abs(t.x - x) < 500) {
                 t.isFrozen = true; t.freezeTimer = 6000;
                 this.spawnImpactParticles(t.x, t.y - 40, '#64D2FF');
             }
@@ -251,10 +278,23 @@ export class GameEngine {
         this.state.cameraX += (targetCamX - this.state.cameraX) * 0.1;
     }
 
-    [this.state.playerCastle, this.state.opponentCastle].forEach(c => {
-      if (c.secondaryHealth > c.health) c.secondaryHealth -= (c.secondaryHealth - c.health) * 0.1;
-      if (c.activeShield > 0) c.activeShield -= 16.67;
+    [this.state.playerCastle, this.state.opponentCastle, ...this.state.extraEnemyCastles].forEach(c => {
+      if ('secondaryHealth' in c && c.secondaryHealth > c.health) c.secondaryHealth -= (c.secondaryHealth - c.health) * 0.1;
+      if ('activeShield' in c && c.activeShield > 0) c.activeShield -= 16.67;
     });
+
+    // Castle Wars progression
+    if (this.state.mode === 'castle_wars') {
+        if (this.state.opponentCastle.health <= 0 && this.state.extraEnemyCastles.length > 0) {
+            const next = this.state.extraEnemyCastles.shift()!;
+            this.state.opponentCastle.x = next.x;
+            this.state.opponentCastle.health = next.health;
+            this.state.opponentCastle.maxHealth = next.maxHealth;
+            this.state.opponentCastle.secondaryHealth = next.health;
+            // Increase difficulty
+            this.state.opponentGold += 500;
+        }
+    }
 
     this.visualEffects.forEach(e => e.life -= 0.02);
     this.visualEffects = this.visualEffects.filter(e => e.life > 0);
@@ -327,13 +367,20 @@ export class GameEngine {
     this.state.troops.filter(t => t.health <= 0).forEach(t => this.spawnDeathParticles(t));
     this.state.troops = this.state.troops.filter(t => t.health > 0);
 
-    if (this.state.opponentCastle.health <= 0) { this.state.status = 'victory'; this.state.isPaused = true; }
+    if (this.state.opponentCastle.health <= 0) { 
+        if (this.state.mode === 'castle_wars' && this.state.extraEnemyCastles.length > 0) {
+            // Already handled above
+        } else {
+            this.state.status = 'victory'; this.state.isPaused = true; 
+        }
+    }
     else if (this.state.playerCastle.health <= 0) { this.state.status = 'defeat'; this.state.isPaused = true; }
   }
 
   private handleAiDecision(now: number) {
     const gold = this.state.opponentGold;
-    if (gold >= 75) { this.createTroop('opponent', 'berserker'); this.state.opponentGold -= 75; }
+    if (gold >= 250) { this.createTroop('opponent', 'tank'); this.state.opponentGold -= 250; }
+    else if (gold >= 75) { this.createTroop('opponent', 'berserker'); this.state.opponentGold -= 75; }
     else if (gold >= 20) { this.createTroop('opponent', 'basic'); this.state.opponentGold -= 20; }
     this.issueCommand('opponent', 'charge');
     this.state.lastAiDecisionTime = now;
@@ -384,12 +431,15 @@ export class GameEngine {
     ctx.save();
     if (this.state.screenShake > 0) ctx.translate((Math.random() - 0.5) * this.state.screenShake, (Math.random() - 0.5) * this.state.screenShake);
     if (this.assets.bg.complete) {
-        for (let i = 0; i < 3; i++) ctx.drawImage(this.assets.bg, (i * CANVAS_WIDTH/2) - this.state.cameraX * 0.5, 0, CANVAS_WIDTH/2, CANVAS_HEIGHT);
+        const bgW = 2000;
+        for (let i = 0; i < 4; i++) ctx.drawImage(this.assets.bg, (i * bgW) - this.state.cameraX * 0.5, 0, bgW, CANVAS_HEIGHT);
     }
     ctx.translate(-this.state.cameraX, 0);
     this.drawObjective(ctx);
     this.drawCastle(ctx, this.state.playerCastle);
     this.drawCastle(ctx, this.state.opponentCastle);
+    this.state.extraEnemyCastles.forEach(c => this.drawCastle(ctx, c as any));
+
     this.state.troops.forEach(t => this.drawTroop(ctx, t)); 
     this.state.projectiles.forEach(p => this.drawProjectile(ctx, p));
     this.visualEffects.forEach(e => this.drawVisualEffect(ctx, e));
@@ -433,13 +483,13 @@ export class GameEngine {
     const y = CANVAS_HEIGHT - 80 - castle.height;
     if (this.assets.castle.complete) {
         ctx.save();
-        if (castle.team === 'opponent') { ctx.translate(castle.x + castle.width, 0); ctx.scale(-1, 1); ctx.drawImage(this.assets.castle, 0, y, castle.width, castle.height); }
+        if (castle.team === 'opponent' || !castle.team) { ctx.translate(castle.x + castle.width, 0); ctx.scale(-1, 1); ctx.drawImage(this.assets.castle, 0, y, castle.width, castle.height); }
         else ctx.drawImage(this.assets.castle, castle.x, y, castle.width, castle.height);
         ctx.restore();
     }
     const bW = castle.width; const hpP = Math.max(0, castle.health / castle.maxHealth);
     ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(castle.x, y - 40, bW, 10);
-    ctx.fillStyle = castle.team === 'player' ? '#32D74B' : '#FF453A'; ctx.fillRect(castle.x, y - 40, bW * hpP, 10);
+    ctx.fillStyle = (!castle.team || castle.team === 'opponent') ? '#FF453A' : '#32D74B'; ctx.fillRect(castle.x, y - 40, bW * hpP, 10);
   }
 
   private drawTroop(ctx: CanvasRenderingContext2D, troop: Troop) {

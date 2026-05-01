@@ -94,8 +94,10 @@ export interface Emote {
 export type GameStatus = 'playing' | 'victory' | 'defeat';
 
 export interface GameState {
+  mode: 'normal' | 'castle_wars' | 'super_castle_wars';
   playerCastle: Castle;
   opponentCastle: Castle;
+  extraEnemyCastles: { id: string, x: number, health: number, maxHealth: number, status: 'alive' | 'destroyed' }[];
   troops: Troop[];
   projectiles: Projectile[];
   particles: Particle[];
