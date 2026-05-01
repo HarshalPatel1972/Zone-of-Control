@@ -63,8 +63,26 @@ export const LobbyOverlay: React.FC<LobbyOverlayProps> = ({ roomId, isHost, onCo
               ))}
             </div>
 
+            <div className="relative flex items-center gap-2 pt-2">
+              <div className="h-px flex-1 bg-white/10"></div>
+              <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">MAP MODE</span>
+              <div className="h-px flex-1 bg-white/10"></div>
+            </div>
+
+            <div className="flex flex-col gap-2 py-2">
+                {(['normal', 'castle_wars', 'super_castle_wars'] as const).map(m => (
+                    <button
+                        key={m}
+                        onClick={() => (window as any).selectedMode = m}
+                        className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest rounded-xl border bg-white/5 border-white/10 text-white/60 hover:border-gold/50 focus:border-gold focus:text-gold transition-all"
+                    >
+                        {m.replace(/_/g, ' ')}
+                    </button>
+                ))}
+            </div>
+
             <button
-              onClick={() => onStartCpu(difficulty)}
+              onClick={() => onStartCpu(difficulty, (window as any).selectedMode || 'normal')}
               className="glass-button w-full py-4 text-sm font-bold tracking-widest hover:bg-white/10 transition-colors"
             >
               START TRAINING

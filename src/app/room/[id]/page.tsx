@@ -32,9 +32,11 @@ export default function RoomPage({ params }: { params: { id: string } }) {
 
   const isHost = role === 'host' || isTraining;
 
-  const handleStartCpu = () => {
+  const handleStartCpu = (diff: any, mode: any) => {
+    engine.setMode(mode || 'normal');
     setIsStarted(true);
     setIsTraining(true);
+    setGameState(engine.getState());
   };
 
   useEffect(() => {
