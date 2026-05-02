@@ -18,8 +18,8 @@ export const TROOP_STATS = {
 };
 
 export const CASTLE_UPGRADES = {
-  2: { cost: 200, healthBoost: 500, incomeBoost: 5 },
-  3: { cost: 500, healthBoost: 1000, incomeBoost: 10 },
+  2: { cost: 200, healthBoost: 5000, incomeBoost: 5 },
+  3: { cost: 500, healthBoost: 10000, incomeBoost: 10 },
 };
 
 interface VisualEffect {
@@ -73,8 +73,8 @@ export class GameEngine {
 
     return {
       mode: 'normal',
-      playerCastle: { health: 1200, maxHealth: 1200, secondaryHealth: 1200, x: 100, width: 250, height: 400, team: 'player', level: 1, turretLevel: 0, lastTurretFire: 0, activeShield: 0 },
-      opponentCastle: { health: 1200, maxHealth: 1200, secondaryHealth: 1200, x: 4000 - 350, width: 250, height: 400, team: 'opponent', level: 1, turretLevel: 0, lastTurretFire: 0, activeShield: 0 },
+      playerCastle: { health: 12000, maxHealth: 12000, secondaryHealth: 12000, x: 100, width: 250, height: 400, team: 'player', level: 1, turretLevel: 0, lastTurretFire: 0, activeShield: 0 },
+      opponentCastle: { health: 12000, maxHealth: 12000, secondaryHealth: 12000, x: 4000 - 350, width: 250, height: 400, team: 'opponent', level: 1, turretLevel: 0, lastTurretFire: 0, activeShield: 0 },
       extraEnemyCastles: [],
       troops: [], projectiles: [], particles: [], emotes: [],
       objective: { x: 2000, y: CANVAS_HEIGHT - 100, radius: 100, control: 0, owner: 'neutral' },
@@ -93,19 +93,19 @@ export class GameEngine {
     if (mode === 'castle_wars') {
         this.state.opponentCastle.x = 2000 - 350;
         this.state.extraEnemyCastles = [
-            { id: 'castle2', x: 4000 - 350, health: 2000, maxHealth: 2000, status: 'alive' },
-            { id: 'castle3', x: 6000 - 350, health: 3500, maxHealth: 3500, status: 'alive' }
+            { id: 'castle2', x: 4000 - 350, health: 20000, maxHealth: 20000, status: 'alive' },
+            { id: 'castle3', x: 6000 - 350, health: 35000, maxHealth: 35000, status: 'alive' }
         ];
     } else if (mode === 'super_castle_wars') {
-        this.state.playerCastle.maxHealth = 5000;
-        this.state.playerCastle.health = 5000;
-        this.state.playerCastle.secondaryHealth = 5000;
+        this.state.playerCastle.maxHealth = 50000;
+        this.state.playerCastle.health = 50000;
+        this.state.playerCastle.secondaryHealth = 50000;
         this.state.playerCastle.width = 400;
         this.state.playerCastle.height = 600;
 
-        this.state.opponentCastle.maxHealth = 5000;
-        this.state.opponentCastle.health = 5000;
-        this.state.opponentCastle.secondaryHealth = 5000;
+        this.state.opponentCastle.maxHealth = 50000;
+        this.state.opponentCastle.health = 50000;
+        this.state.opponentCastle.secondaryHealth = 50000;
         this.state.opponentCastle.width = 400;
         this.state.opponentCastle.height = 600;
     }
