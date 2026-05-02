@@ -284,7 +284,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
       {isStarted && (
         <div className="w-full bg-[#09090b] border-t border-white/5 p-6 flex justify-center z-50">
             {!isMobile ? (
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-10 gap-3 w-full max-w-[1400px]">
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-11 gap-3 w-full max-w-[1500px]">
                     {[
                         { type: 'basic', name: 'Knight', asset: 'knight' },
                         { type: 'archer', name: 'Archer', asset: 'archer' },
@@ -295,6 +295,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                         { type: 'dragon', name: 'DRAGON', asset: 'dragon' },
                         { type: 'angel', name: 'ANGEL', asset: 'angel' },
                         { type: 'tank', name: 'TANK', asset: 'tank' },
+                        { type: 'super_monster', name: 'TITAN', asset: 'super_monster' },
                     ].map((unit) => {
                         const troopTypeKey = unit.type.toUpperCase() as keyof typeof TROOP_STATS;
                         const stats = TROOP_STATS[troopTypeKey];
@@ -340,6 +341,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                                 { type: 'dragon', name: 'DRAGON', asset: 'dragon' },
                                 { type: 'angel', name: 'ANGEL', asset: 'angel' },
                                 { type: 'tank', name: 'TANK', asset: 'tank' },
+                                { type: 'super_monster', name: 'TITAN', asset: 'super_monster' },
                             ].map((unit) => {
                                 const troopTypeKey = unit.type.toUpperCase() as keyof typeof TROOP_STATS;
                                 const cost = TROOP_STATS[troopTypeKey]?.cost || 0;

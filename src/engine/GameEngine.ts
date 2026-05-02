@@ -11,9 +11,10 @@ export const TROOP_STATS = {
   HERO: { cost: 300, health: 1500, attackDamage: 80, attackRange: 80, attackCooldown: 600, speed: 4.0, size: 85, asset: 'hero', maxCount: 1 },
   FIRE_ARCHER: { cost: 100, health: 150, attackDamage: 45, attackRange: 500, attackCooldown: 1800, speed: 2.0, size: 60, asset: 'archer', maxCount: 8 },
   CROSSMAN: { cost: 120, health: 250, attackDamage: 70, attackRange: 350, attackCooldown: 2200, speed: 1.8, size: 65, asset: 'archer', maxCount: 6 },
-  DRAGON: { cost: 500, health: 2500, attackDamage: 150, attackRange: 150, attackCooldown: 2000, speed: 3.0, size: 130, asset: 'dragon', maxCount: 2 },
-  ANGEL: { cost: 400, health: 1200, attackDamage: 50, attackRange: 400, attackCooldown: 1200, speed: 4.8, size: 100, asset: 'angel', maxCount: 3 },
-  TANK: { cost: 250, health: 5000, attackDamage: 25, attackRange: 40, attackCooldown: 1200, speed: 1.4, size: 110, asset: 'tank', maxCount: 5 }
+  DRAGON: { cost: 500, health: 2500, attackDamage: 150, attackRange: 150, attackCooldown: 5000, speed: 3.0, size: 130, asset: 'dragon', maxCount: 2 },
+  ANGEL: { cost: 400, health: 1200, attackDamage: 50, attackRange: 400, attackCooldown: 5000, speed: 4.8, size: 100, asset: 'angel', maxCount: 3 },
+  TANK: { cost: 250, health: 5000, attackDamage: 25, attackRange: 40, attackCooldown: 5000, speed: 1.4, size: 110, asset: 'tank', maxCount: 5 },
+  SUPER_MONSTER: { cost: 2000, health: 15000, attackDamage: 300, attackRange: 200, attackCooldown: 3000, speed: 2.0, size: 180, asset: 'hero', maxCount: 1 }
 };
 
 export const CASTLE_UPGRADES = {
@@ -44,7 +45,7 @@ export class GameEngine {
   }
 
   private loadAssets() {
-    const assetNames = ['bg', 'knight', 'archer', 'berserker', 'castle', 'dragon', 'angel', 'tank', 'hero'];
+    const assetNames = ['bg', 'knight', 'archer', 'berserker', 'castle', 'dragon', 'angel', 'tank', 'hero', 'super_monster'];
     let loadedCount = 0;
     assetNames.forEach(name => {
       const img = new Image();
@@ -296,6 +297,26 @@ export class GameEngine {
           } else if (t.type === 'tank') {
               this.visualEffects.push({ id: Math.random().toString(), type: 'shockwave', x: t.x, y: CANVAS_HEIGHT - 100, life: 1, maxLife: 1, color: '#E2B759' });
               this.state.troops.filter(other => other.team !== t.team && Math.abs(other.x - t.x) < 250).forEach(other => { other.x += (t.team === 'player' ? 150 : -150); other.health -= 150; });
+          } else if (t.type === 'super_monster') {
+              // Rotation of attacks every 5 seconds within the 15s cycle
+              const cycleStep = Math.floor((now % 15000) / 5000);
+              if (cycleStep === 0) { // Fire Breath
+                  this.visualEffects.push({ id: Math.random().toString(), type: 'fire_breath', x: t.x + (t.team === 'player' ? 150 : -150), y: t.y - 100, life: 1, maxLife: 1, color: '#FF453A' });
+                  this.state.troops.filter(other => other.team !== t.team && Math.abs(other.x - t.x) < 400).forEach(other => { other.health -= 200; });
+              } else if (cycleStep === 1) { // Freeze Attack
+                  this.visualEffects.push({ id: Math.random().toString(), type: 'ice', x: t.x + (t.team === 'player' ? 300 : -300), y: CANVAS_HEIGHT - 100, life: 1, maxLife: 1, color: '#64D2FF' });
+                  this.state.troops.filter(other => other.team !== t.team && Math.abs(other.x - t.x) < 500).forEach(other => { other.isFrozen = true; other.freezeTimer = 4000; other.health -= 100; });
+              } else { // Meteor Call (Targets enemy troops directly)
+                  const targetTeam = t.team === 'player' ? 'opponent' : 'player';
+                  const enemies = this.state.troops.filter(other => other.team === targetTeam);
+                  enemies.forEach((enemy, i) => {
+                      if (i > 5) return; // Limit to 5 meteors to avoid chaos
+                      this.state.projectiles.push({
+                        id: Math.random().toString(), x: enemy.x, y: -500, vx: 0, vy: 15, team: t.team, damage: 200, type: 'meteor'
+                      });
+                  });
+                  this.state.screenShake = 50;
+              }
           }
           t.lastSpecialTime = now;
       }
