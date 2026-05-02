@@ -19,7 +19,8 @@ export const TROOP_STATS = {
   SUPER_BOMB: { cost: 400, health: 200, attackDamage: 4000, attackRange: 100, attackCooldown: 1000, speed: 4.0, size: 80, asset: 'knight', maxCount: 3 },
   SUCCUBUS: { cost: 150, health: 600, attackDamage: 45, attackRange: 60, attackCooldown: 800, speed: 3.8, size: 60, asset: 'berserker', maxCount: 8 },
   ICE_MAGE: { cost: 120, health: 300, attackDamage: 20, attackRange: 400, attackCooldown: 2000, speed: 2.2, size: 55, asset: 'archer', maxCount: 8 },
-  PHOENIX: { cost: 700, health: 1200, attackDamage: 100, attackRange: 120, attackCooldown: 1200, speed: 4.5, size: 90, asset: 'angel', maxCount: 2 }
+  PHOENIX: { cost: 700, health: 1200, attackDamage: 100, attackRange: 120, attackCooldown: 1200, speed: 4.5, size: 90, asset: 'angel', maxCount: 2 },
+  SUPER_MONSTER_KING: { cost: 0, health: 50000, attackDamage: 0, attackRange: 0, attackCooldown: 4000, speed: 0, size: 200, asset: 'super_monster', maxCount: 5 }
 };
 
 export const CASTLE_UPGRADES = {
@@ -113,6 +114,17 @@ export class GameEngine {
         this.state.opponentCastle.secondaryHealth = 50000;
         this.state.opponentCastle.width = 400;
         this.state.opponentCastle.height = 600;
+        this.state.opponentCastle.x = 2000 - 350;
+
+        this.state.extraEnemyCastles = [
+            { id: 'castle2', x: 4000 - 350, health: 50000, maxHealth: 50000, status: 'alive' },
+            { id: 'castle3', x: 6000 - 350, health: 50000, maxHealth: 50000, status: 'alive' }
+        ];
+
+        // Spawn Kings for all castles
+        this.createKing(this.state.playerCastle, 'player');
+        this.createKing(this.state.opponentCastle, 'opponent');
+        this.state.extraEnemyCastles.forEach(c => this.createKing(c as unknown as Castle, 'opponent'));
     } else if (mode === 'dark_age') {
         this.state.playerCastle.health = Infinity;
         this.state.opponentCastle.health = Infinity;
@@ -251,6 +263,20 @@ export class GameEngine {
     this.state.troops.filter(t => t.team === team).forEach(t => { t.state = command === 'charge' ? 'advancing' : 'retreating'; });
   }
 
+  private createKing(castle: Castle, team: Team) {
+    const stats = TROOP_STATS.SUPER_MONSTER_KING;
+    const king: Troop = {
+      id: `king_${Math.random()}`, type: 'super_monster_king', x: castle.x + castle.width / 2, y: CANVAS_HEIGHT - 120,
+      speed: 0, team, size: stats.size,
+      health: castle.health, maxHealth: castle.maxHealth, secondaryHealth: castle.health,
+      attackDamage: 0, attackRange: 0, attackCooldown: stats.attackCooldown,
+      lastAttackTime: 0, isAttacking: false, isTakingDamage: false, damageFlashTimer: 0,
+      bobbingTimer: Math.random() * Math.PI * 2, kills: 0, rank: 0, state: 'idle',
+      isFrozen: false, freezeTimer: 0, lastSpecialTime: Date.now()
+    };
+    this.state.troops.push(king);
+  }
+
   private createTroop(team: Team, type: TroopType) {
     const stats = TROOP_STATS[type.toUpperCase() as keyof typeof TROOP_STATS] || TROOP_STATS.BASIC;
     const id = Math.random().toString(36).substr(2, 9);
@@ -310,7 +336,13 @@ export class GameEngine {
       if (t.secondaryHealth > t.health) t.secondaryHealth -= (t.secondaryHealth - t.health) * 0.1;
       if (t.isFrozen) { t.freezeTimer -= 16.67; if (t.freezeTimer <= 0) t.isFrozen = false; }
       
-      if (now - t.lastSpecialTime >= 15000) {
+      if (t.type === 'super_monster_king') {
+          const castles = [this.state.playerCastle, this.state.opponentCastle, ...this.state.extraEnemyCastles as unknown as Castle[]];
+          const myCastle = castles.find(c => Math.abs(c.x + 200 - t.x) < 300);
+          if (myCastle) { t.health = myCastle.health; t.maxHealth = myCastle.maxHealth; t.secondaryHealth = myCastle.health; }
+      }
+
+      if (now - t.lastSpecialTime >= (t.type === 'super_monster_king' ? 4000 : 15000)) {
           if (t.type === 'dragon') {
               this.visualEffects.push({ id: Math.random().toString(), type: 'fire_breath', x: t.x + (t.team === 'player' ? 100 : -100), y: t.y - 50, life: 1, maxLife: 1, color: '#FF453A' });
               this.state.troops.filter(other => other.team !== t.team && Math.abs(other.x - t.x) < 300).forEach(other => { other.health -= 300; });
@@ -340,6 +372,18 @@ export class GameEngine {
                   });
                   this.state.screenShake = 50;
               }
+          } else if (t.type === 'super_monster_king') {
+              for (let i = 0; i < 20; i++) {
+                  this.state.projectiles.push({
+                      id: Math.random().toString(),
+                      x: t.x + (t.team === 'player' ? 200 : -200) + (Math.random() - 0.5) * 800,
+                      y: -400 - (i * 50),
+                      vx: (t.team === 'player' ? 5 : -5) + (Math.random() - 0.5) * 4,
+                      vy: 15 + Math.random() * 5,
+                      team: t.team, damage: 80, type: 'arrow'
+                  });
+              }
+              this.state.screenShake = 30;
           }
           t.lastSpecialTime = now;
       }

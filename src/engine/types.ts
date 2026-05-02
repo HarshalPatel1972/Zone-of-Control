@@ -2,7 +2,7 @@ export type Team = 'player' | 'opponent';
 export type CpuDifficulty = 'easy' | 'medium' | 'hard';
 export type WeatherType = 'clear' | 'rain' | 'fog' | 'storm';
 export type AbilityType = 'meteor' | 'heal' | 'shield' | 'lightning' | 'superMeteor' | 'moon' | 'superHeal' | 'iceFreeze';
-export type TroopType = 'basic' | 'archer' | 'berserker' | 'hero' | 'fire_archer' | 'crossman' | 'dragon' | 'angel' | 'tank' | 'super_monster' | 'bomb' | 'succubus' | 'ice_mage' | 'phoenix' | 'super_bomb';
+export type TroopType = 'basic' | 'archer' | 'berserker' | 'hero' | 'fire_archer' | 'crossman' | 'dragon' | 'angel' | 'tank' | 'super_monster' | 'bomb' | 'succubus' | 'ice_mage' | 'phoenix' | 'super_bomb' | 'super_monster_king';
 
 export interface Castle {
   health: number;
