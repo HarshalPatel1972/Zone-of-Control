@@ -369,7 +369,7 @@ export class GameEngine {
       const currentRange = troop.attackRange;
       const currentSpeed = troop.state === 'advancing' ? troop.speed : (troop.state === 'retreating' ? -troop.speed : 0);
       const distToCastle = Math.abs(troop.x - (troop.team === 'player' ? enemyCastle.x : enemyCastle.x + enemyCastle.width));
-      if (distToCastle <= currentRange) { isBlocked = true; target = enemyCastle; }
+      if (this.state.mode !== 'dark_age' && distToCastle <= currentRange) { isBlocked = true; target = enemyCastle; }
       this.state.troops.forEach((other) => {
         if (troop.id === other.id) return;
         const dist = troop.team === 'player' ? other.x - troop.x : troop.x - other.x;
@@ -404,8 +404,13 @@ export class GameEngine {
         const stats = TROOP_STATS[t.type.toUpperCase() as keyof typeof TROOP_STATS];
         if (stats) {
             const reward = stats.cost * 2;
-            if (t.team === 'player') this.state.opponentGold += reward;
-            else this.state.gold += reward;
+            if (t.team === 'player') {
+                this.state.opponentGold += reward;
+                this.state.stats.opponent.kills++;
+            } else {
+                this.state.gold += reward;
+                this.state.stats.player.kills++;
+            }
         }
         this.spawnDeathParticles(t);
     });

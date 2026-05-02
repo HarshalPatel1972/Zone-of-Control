@@ -238,7 +238,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
         
         {/* DESKTOP SIDEBAR ABILITIES */}
         {!isMobile && isStarted && (
-            <div className="absolute top-1/2 -translate-y-1/2 left-6 z-40 flex flex-col gap-2 pointer-events-auto">
+            <div className="absolute top-1/2 -translate-y-1/2 left-6 z-40 grid grid-cols-2 gap-2 pointer-events-auto">
                {(['meteor', 'lightning', 'iceFreeze', 'moon', 'superMeteor', 'heal', 'superHeal', 'shield'] as const).map(id => {
                  const abilities = isHost ? gameState.playerAbilities : gameState.opponentAbilities;
                  const data = abilities[id];
