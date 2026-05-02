@@ -165,6 +165,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
   const myGold = isHost ? gameState.gold : gameState.opponentGold;
   const enemyGold = isHost ? gameState.opponentGold : gameState.gold;
   const myStats = isHost ? gameState.stats.player : gameState.stats.opponent;
+  const enemyStats = isHost ? gameState.stats.opponent : gameState.stats.player;
 
   return (
     <main className="fixed inset-0 bg-[#09090b] flex flex-col items-center font-inter select-none touch-none overflow-hidden text-white">
@@ -190,8 +191,12 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                     <span className="text-3xl font-black text-gold tracking-tighter">${myGold}</span>
                 </div>
                 <div>
-                    <span className="block text-[10px] font-black text-error/40 uppercase tracking-[0.3em]">Tactical Kills</span>
+                    <span className="block text-[10px] font-black text-error/40 uppercase tracking-[0.3em]">{isHost ? 'West' : 'East'} Kills</span>
                     <span className="text-3xl font-black text-error tracking-tighter">{myStats.kills}</span>
+                </div>
+                <div>
+                    <span className="block text-[10px] font-black text-white/20 uppercase tracking-[0.3em]">{isHost ? 'East' : 'West'} Kills</span>
+                    <span className="text-3xl font-black text-white/40 tracking-tighter">{enemyStats.kills}</span>
                 </div>
             </div>
 
@@ -212,7 +217,9 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                 <div className="px-4 py-2 glass-panel bg-black/60 rounded-xl flex items-center gap-3 border-gold/30">
                     <span className="text-xl font-black text-gold">${myGold}</span>
                     <div className="h-4 w-px bg-white/20"></div>
-                    <span className="text-xs font-bold text-white/60 uppercase">{myStats.kills} KILLS</span>
+                    <span className="text-xs font-bold text-success uppercase">{myStats.kills}</span>
+                    <div className="h-4 w-px bg-white/20"></div>
+                    <span className="text-xs font-bold text-error uppercase">{enemyStats.kills}</span>
                     <div className="h-4 w-px bg-white/20"></div>
                     <span className="text-xs font-black text-cyan-400 tabular-nums">
                         {Math.floor(gameState.matchTimer / 60)}:{String(gameState.matchTimer % 60).padStart(2, '0')}
@@ -315,7 +322,6 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                         { type: 'bomb', name: 'BOMB', asset: 'knight' },
                         { type: 'super_bomb', name: 'NUKE', asset: 'knight' },
                         { type: 'succubus', name: 'SUCCUBUS', asset: 'berserker' },
-                        { type: 'ice_mage', name: 'ICE MAGE', asset: 'archer' },
                         { type: 'phoenix', name: 'PHOENIX', asset: 'angel' },
                     ].map((unit) => {
                         const troopTypeKey = unit.type.toUpperCase() as keyof typeof TROOP_STATS;
@@ -330,18 +336,18 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                                 key={unit.type}
                                 onClick={() => handleSpawn(unit.type as TroopType)}
                                 disabled={!isStarted || myGold < cost || isAtMax}
-                                className="glass-button flex flex-col items-center justify-center p-4 h-32 rounded-2xl group active:scale-95 disabled:opacity-20 hover:border-gold/50 transition-all"
+                                className="glass-button flex flex-col items-center justify-center p-2 h-24 rounded-xl group active:scale-95 disabled:opacity-20 hover:border-gold/50 transition-all"
                             >
-                                <img src={`/assets/${unit.asset}.png`} alt="" className="w-12 h-12 object-contain mb-2 group-hover:scale-110 transition-transform" />
+                                <img src={`/assets/${unit.asset}.png`} alt="" className="w-8 h-8 object-contain mb-1 group-hover:scale-110 transition-transform" />
                                 <span className="text-[10px] font-bold uppercase text-white/80">{unit.name}</span>
                                 <span className="text-[12px] font-black text-gold">${cost}</span>
                                 <span className="text-[8px] font-bold text-white/20">[{currentCount}/{maxCount}]</span>
                             </button>
                         );
                     })}
-                    <button onClick={handleUpgrade} disabled={!isStarted || (isHost ? gameState.playerCastle.level >= 3 : gameState.opponentCastle.level >= 3)} className="glass-button flex flex-col items-center justify-center p-4 h-32 rounded-2xl group active:scale-95 disabled:opacity-20 hover:border-gold/50 transition-all">
-                        <div className="w-8 h-8 mb-2 flex items-center justify-center rounded bg-gold/10 text-gold border border-gold/20">
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 11l7-7 7 7M5 19l7-7 7 7" /></svg>
+                    <button onClick={handleUpgrade} disabled={!isStarted || (isHost ? gameState.playerCastle.level >= 3 : gameState.opponentCastle.level >= 3)} className="glass-button flex flex-col items-center justify-center p-2 h-24 rounded-xl group active:scale-95 disabled:opacity-20 hover:border-gold/50 transition-all">
+                        <div className="w-6 h-6 mb-1 flex items-center justify-center rounded bg-gold/10 text-gold border border-gold/20">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 11l7-7 7 7M5 19l7-7 7 7" /></svg>
                         </div>
                         <span className="text-[10px] font-bold uppercase text-white/80">Upgrade</span>
                         <span className="text-[10px] font-black text-gold">RANK {isHost ? gameState.playerCastle.level : gameState.opponentCastle.level}</span>
@@ -366,7 +372,6 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                                 { type: 'bomb', name: 'BOMB', asset: 'knight' },
                                 { type: 'super_bomb', name: 'NUKE', asset: 'knight' },
                                 { type: 'succubus', name: 'SUCCUBUS', asset: 'berserker' },
-                                { type: 'ice_mage', name: 'ICE MAGE', asset: 'archer' },
                                 { type: 'phoenix', name: 'PHOENIX', asset: 'angel' },
                             ].map((unit) => {
                                 const troopTypeKey = unit.type.toUpperCase() as keyof typeof TROOP_STATS;
