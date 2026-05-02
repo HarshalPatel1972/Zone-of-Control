@@ -426,9 +426,13 @@ export class GameEngine {
     else if (gold >= 20) { this.createTroop('opponent', 'basic'); this.state.opponentGold -= 20; }
 
     // Command Strategy
-    if (dangerLevel > 10 || distToCastle < 500) this.issueCommand('opponent', 'charge');
-    else if (dangerLevel < -5) this.issueCommand('opponent', 'retreat');
-    else this.issueCommand('opponent', 'charge');
+    if (distToCastle < 1000 || dangerLevel < -2) {
+        this.issueCommand('opponent', 'charge');
+    } else if (dangerLevel > 5) {
+        this.issueCommand('opponent', 'retreat');
+    } else {
+        this.issueCommand('opponent', 'charge');
+    }
 
     this.state.lastAiDecisionTime = now;
   }
