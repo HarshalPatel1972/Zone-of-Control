@@ -77,7 +77,7 @@ export class GameEngine {
     const statInit = { goldEarned: 150, troopsSpawned: 0, kills: 0, damageDealt: 0 };
 
     return {
-      mode: 'normal',
+      mode: 'normal', matchTime: 180, matchTimer: 180,
       playerCastle: { health: 12000, maxHealth: 12000, secondaryHealth: 12000, x: 100, width: 250, height: 400, team: 'player', level: 1, turretLevel: 0, lastTurretFire: 0, activeShield: 0 },
       opponentCastle: { health: 12000, maxHealth: 12000, secondaryHealth: 12000, x: 4000 - 350, width: 250, height: 400, team: 'opponent', level: 1, turretLevel: 0, lastTurretFire: 0, activeShield: 0 },
       extraEnemyCastles: [],
@@ -113,7 +113,16 @@ export class GameEngine {
         this.state.opponentCastle.secondaryHealth = 50000;
         this.state.opponentCastle.width = 400;
         this.state.opponentCastle.height = 600;
+    } else if (mode === 'dark_age') {
+        this.state.playerCastle.health = Infinity;
+        this.state.opponentCastle.health = Infinity;
+        this.state.gold = 1000; this.state.opponentGold = 1000;
     }
+  }
+
+  public setMatchTime(seconds: number) {
+    this.state.matchTime = seconds;
+    this.state.matchTimer = seconds;
   }
 
   public start() {
@@ -256,6 +265,14 @@ export class GameEngine {
       isFrozen: false, freezeTimer: 0, lastSpecialTime: Date.now()
     };
     this.state.troops.push(newTroop);
+    
+    // DARK AGE BUFF
+    if (this.state.mode === 'dark_age' && team === 'opponent') {
+        newTroop.health *= 1.5;
+        newTroop.maxHealth *= 1.5;
+        newTroop.attackDamage *= 1.5;
+    }
+
     this.state.stats[team].troopsSpawned++;
   }
 
@@ -327,7 +344,11 @@ export class GameEngine {
       }
     });
 
-    if (now - this.state.lastIncomeTime >= 1000) { this.state.gold += 20; this.state.opponentGold += 20; this.state.lastIncomeTime = now; }
+    if (now - this.state.lastIncomeTime >= 1000) { 
+        this.state.gold += 20; this.state.opponentGold += 20; 
+        this.state.lastIncomeTime = now; 
+        if (this.state.status === 'playing') this.state.matchTimer--;
+    }
 
     this.state.emotes.forEach(e => e.life -= 0.02);
     this.state.emotes = this.state.emotes.filter(e => e.life > 0);
@@ -389,10 +410,17 @@ export class GameEngine {
     });
     this.state.troops = this.state.troops.filter(t => t.health > 0);
 
-    if (this.state.opponentCastle.health <= 0) {
+    if (this.state.matchTimer <= 0) {
+        const pk = this.state.stats.player.kills;
+        const ok = this.state.stats.opponent.kills;
+        this.state.status = pk > ok ? 'victory' : (pk < ok ? 'defeat' : 'defeat');
+        this.state.isPaused = true;
+    }
+
+    if (this.state.opponentCastle.health <= 0 && this.state.mode !== 'dark_age') {
         if (this.state.mode === 'castle_wars' && this.state.extraEnemyCastles.length > 0) {} 
         else { this.state.status = 'victory'; this.state.isPaused = true; }
-    } else if (this.state.playerCastle.health <= 0) { 
+    } else if (this.state.playerCastle.health <= 0 && this.state.mode !== 'dark_age') { 
         this.state.status = 'defeat'; this.state.isPaused = true; 
     }
   }
@@ -468,9 +496,11 @@ export class GameEngine {
     if (this.assets.bg.complete) { const bgW = 2000; for (let i = 0; i < 4; i++) ctx.drawImage(this.assets.bg, (i * bgW) - this.state.cameraX * 0.5, 0, bgW, CANVAS_HEIGHT); }
     ctx.translate(-this.state.cameraX, 0);
     this.drawObjective(ctx);
-    this.drawCastle(ctx, this.state.playerCastle);
-    this.drawCastle(ctx, this.state.opponentCastle);
-    this.state.extraEnemyCastles.forEach(c => this.drawCastle(ctx, c as unknown as Castle));
+    if (this.state.mode !== 'dark_age') {
+        this.drawCastle(ctx, this.state.playerCastle);
+        this.drawCastle(ctx, this.state.opponentCastle);
+        this.state.extraEnemyCastles.forEach(c => this.drawCastle(ctx, c as unknown as Castle));
+    }
     this.state.troops.forEach(t => this.drawTroop(ctx, t)); 
     this.state.projectiles.forEach(p => this.drawProjectile(ctx, p));
     this.visualEffects.forEach(e => this.drawVisualEffect(ctx, e));

@@ -16,7 +16,8 @@ export default function LandingPage() {
 
   const [targetRoomId, setTargetRoomId] = useState('');
   const [trainingDiff, setTrainingDiff] = useState<'easy' | 'medium' | 'hard'>('medium');
-  const [mapMode, setMapMode] = useState<'normal' | 'castle_wars' | 'super_castle_wars'>('normal');
+  const [mapMode, setMapMode] = useState<'normal' | 'castle_wars' | 'super_castle_wars' | 'dark_age'>('normal');
+  const [matchDuration, setMatchDuration] = useState(180);
 
   const handleCreateRoom = () => {
     const roomId = nanoid(8);
@@ -33,7 +34,7 @@ export default function LandingPage() {
   const handleStartTraining = () => {
     const roomId = 'training-' + nanoid(4);
     // Pass settings via search params so RoomPage can initialize correctly
-    router.push(`/room/${roomId}?mode=${mapMode}&diff=${trainingDiff}&training=true`);
+    router.push(`/room/${roomId}?mode=${mapMode}&diff=${trainingDiff}&time=${matchDuration}&training=true`);
   };
 
   return (
@@ -137,7 +138,7 @@ export default function LandingPage() {
               </div>
 
               <div className="space-y-2">
-                {(['normal', 'castle_wars', 'super_castle_wars'] as const).map(m => (
+                {(['normal', 'castle_wars', 'super_castle_wars', 'dark_age'] as const).map(m => (
                   <button 
                     key={m} 
                     onClick={() => setMapMode(m)}
@@ -147,6 +148,22 @@ export default function LandingPage() {
                     {mapMode === m && <div className="w-1.5 h-1.5 bg-gold rounded-full shadow-[0_0_10px_#e2b759]" />}
                   </button>
                 ))}
+              </div>
+
+              {/* DURATION SELECTION */}
+              <div className="space-y-3">
+                <span className="text-[10px] font-black uppercase tracking-widest text-white/20">Match Duration</span>
+                <div className="grid grid-cols-4 gap-2">
+                    {[60, 180, 300, 600].map(sec => (
+                        <button
+                            key={sec}
+                            onClick={() => setMatchDuration(sec)}
+                            className={`py-2 rounded-lg text-[10px] font-bold border transition-all ${matchDuration === sec ? 'bg-white/10 border-white/40 text-white' : 'border-white/5 text-white/20'}`}
+                        >
+                            {sec/60}m
+                        </button>
+                    ))}
+                </div>
               </div>
 
               <button 
