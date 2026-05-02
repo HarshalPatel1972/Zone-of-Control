@@ -14,7 +14,12 @@ export const TROOP_STATS = {
   DRAGON: { cost: 500, health: 2500, attackDamage: 150, attackRange: 150, attackCooldown: 5000, speed: 3.0, size: 130, asset: 'dragon', maxCount: 2 },
   ANGEL: { cost: 400, health: 1200, attackDamage: 50, attackRange: 400, attackCooldown: 5000, speed: 4.8, size: 100, asset: 'angel', maxCount: 3 },
   TANK: { cost: 250, health: 5000, attackDamage: 25, attackRange: 40, attackCooldown: 5000, speed: 1.4, size: 110, asset: 'tank', maxCount: 5 },
-  SUPER_MONSTER: { cost: 2000, health: 15000, attackDamage: 300, attackRange: 200, attackCooldown: 3000, speed: 2.0, size: 180, asset: 'hero', maxCount: 1 }
+  SUPER_MONSTER: { cost: 2000, health: 15000, attackDamage: 300, attackRange: 200, attackCooldown: 3000, speed: 2.0, size: 180, asset: 'hero', maxCount: 1 },
+  BOMB: { cost: 50, health: 50, attackDamage: 400, attackRange: 60, attackCooldown: 1000, speed: 5.0, size: 45, asset: 'knight', maxCount: 10 },
+  SUPER_BOMB: { cost: 400, health: 200, attackDamage: 4000, attackRange: 100, attackCooldown: 1000, speed: 4.0, size: 80, asset: 'knight', maxCount: 3 },
+  SUCCUBUS: { cost: 150, health: 600, attackDamage: 45, attackRange: 60, attackCooldown: 800, speed: 3.8, size: 60, asset: 'berserker', maxCount: 8 },
+  ICE_MAGE: { cost: 120, health: 300, attackDamage: 20, attackRange: 400, attackCooldown: 2000, speed: 2.2, size: 55, asset: 'archer', maxCount: 8 },
+  PHOENIX: { cost: 700, health: 1200, attackDamage: 100, attackRange: 120, attackCooldown: 1200, speed: 4.5, size: 90, asset: 'angel', maxCount: 2 }
 };
 
 export const CASTLE_UPGRADES = {
@@ -349,7 +354,19 @@ export class GameEngine {
         if (troop.team !== other.team && dist > 0 && dist < currentRange) { isBlocked = true; target = other; }
       });
       if (!isBlocked && troop.state !== 'idle' && !troop.isFrozen) troop.x += currentSpeed;
-      else if (target && !troop.isFrozen) { if (now - troop.lastAttackTime >= troop.attackCooldown) { if (troop.type.includes('archer') || troop.type === 'crossman') this.spawnProjectile(troop, target); else this.dealDamage(troop, target); troop.lastAttackTime = now; troop.isAttacking = true; } }
+      else if (target && !troop.isFrozen) { 
+          if (troop.type === 'bomb' || troop.type === 'super_bomb') {
+              const blastRadius = troop.type === 'super_bomb' ? 600 : 250;
+              const damage = troop.type === 'super_bomb' ? 4000 : 400;
+              this.visualEffects.push({ id: Math.random().toString(), type: 'shockwave', x: troop.x, y: troop.y, life: 1, maxLife: 1, color: troop.type === 'super_bomb' ? '#FFD60A' : '#FF453A' });
+              this.state.troops.filter(other => other.team !== troop.team && Math.abs(other.x - troop.x) < blastRadius).forEach(other => { other.health -= damage; });
+              troop.health = 0; // Detonate
+          } else if (now - troop.lastAttackTime >= troop.attackCooldown) { 
+              if (troop.type.includes('archer') || troop.type === 'crossman' || troop.type === 'ice_mage') this.spawnProjectile(troop, target); 
+              else this.dealDamage(troop, target); 
+              troop.lastAttackTime = now; troop.isAttacking = true; 
+          } 
+      }
     });
 
     this.state.projectiles.forEach(p => {
@@ -359,25 +376,77 @@ export class GameEngine {
       if (p.x >= eC.x && p.x <= eC.x + eC.width && p.y >= CANVAS_HEIGHT - eC.height - 100) { this.dealDamage(p, eC); p.y = 9999; }
     });
     this.state.projectiles = this.state.projectiles.filter(p => p.y < CANVAS_HEIGHT);
-    this.state.troops.filter(t => t.health <= 0).forEach(t => this.spawnDeathParticles(t));
+    
+    // DEATH AND REWARDS
+    this.state.troops.filter(t => t.health <= 0).forEach(t => {
+        const stats = TROOP_STATS[t.type.toUpperCase() as keyof typeof TROOP_STATS];
+        if (stats) {
+            const reward = stats.cost * 2;
+            if (t.team === 'player') this.state.opponentGold += reward;
+            else this.state.gold += reward;
+        }
+        this.spawnDeathParticles(t);
+    });
     this.state.troops = this.state.troops.filter(t => t.health > 0);
-    if (this.state.opponentCastle.health <= 0) { if (this.state.mode === 'castle_wars' && this.state.extraEnemyCastles.length > 0) {} else { this.state.status = 'victory'; this.state.isPaused = true; } }
-    else if (this.state.playerCastle.health <= 0) { this.state.status = 'defeat'; this.state.isPaused = true; }
+
+    if (this.state.opponentCastle.health <= 0) {
+        if (this.state.mode === 'castle_wars' && this.state.extraEnemyCastles.length > 0) {} 
+        else { this.state.status = 'victory'; this.state.isPaused = true; }
+    } else if (this.state.playerCastle.health <= 0) { 
+        this.state.status = 'defeat'; this.state.isPaused = true; 
+    }
   }
 
   private handleAiDecision(now: number) {
     const gold = this.state.opponentGold;
-    if (gold >= 500) { this.createTroop('opponent', 'dragon'); this.state.opponentGold -= 500; }
-    else if (gold >= 250) { this.createTroop('opponent', 'tank'); this.state.opponentGold -= 250; }
+    const playerTroops = this.state.troops.filter(t => t.team === 'player');
+    const cpuTroops = this.state.troops.filter(t => t.team === 'opponent');
+    
+    // Strategic Analysis
+    const dangerLevel = playerTroops.length - cpuTroops.length;
+    const closestEnemyX = playerTroops.length > 0 ? Math.min(...playerTroops.map(t => t.x)) : 6000;
+    const distToCastle = Math.abs(closestEnemyX - this.state.opponentCastle.x);
+
+    // Tactical Ability Usage
+    if (dangerLevel > 5 && now - this.state.opponentAbilities.meteor.lastUsed > 12000) {
+        this.useAbility('opponent', 'meteor', closestEnemyX);
+    }
+    if (this.state.opponentCastle.health < 3000 && now - this.state.opponentAbilities.superHeal.lastUsed > 50000) {
+        this.useAbility('opponent', 'superHeal');
+    }
+
+    // Recruitment Strategy
+    if (gold >= 2000) { this.createTroop('opponent', 'super_monster'); this.state.opponentGold -= 2000; }
+    else if (gold >= 700 && dangerLevel < 0) { this.createTroop('opponent', 'phoenix'); this.state.opponentGold -= 700; }
+    else if (distToCastle < 800 && gold >= 400) { this.createTroop('opponent', 'super_bomb'); this.state.opponentGold -= 400; }
+    else if (dangerLevel > 2 && gold >= 150) { this.createTroop('opponent', 'succubus'); this.state.opponentGold -= 150; }
+    else if (gold >= 120 && playerTroops.some(t => t.speed > 4)) { this.createTroop('opponent', 'ice_mage'); this.state.opponentGold -= 120; }
+    else if (gold >= 50 && distToCastle < 1500) { this.createTroop('opponent', 'bomb'); this.state.opponentGold -= 50; }
     else if (gold >= 75) { this.createTroop('opponent', 'berserker'); this.state.opponentGold -= 75; }
     else if (gold >= 20) { this.createTroop('opponent', 'basic'); this.state.opponentGold -= 20; }
-    this.issueCommand('opponent', 'charge');
+
+    // Command Strategy
+    if (dangerLevel > 10 || distToCastle < 500) this.issueCommand('opponent', 'charge');
+    else if (dangerLevel < -5) this.issueCommand('opponent', 'retreat');
+    else this.issueCommand('opponent', 'charge');
+
     this.state.lastAiDecisionTime = now;
   }
 
   private dealDamage(attacker: Troop | Projectile, defender: Troop | Castle) {
     if ('activeShield' in defender && defender.activeShield > 0) return;
-    const damage = 'damage' in attacker ? attacker.damage : (attacker as Troop).attackDamage;
+    let damage = 'damage' in attacker ? attacker.damage : (attacker as Troop).attackDamage;
+    
+    // SPECIAL EFFECTS
+    if (!('damage' in attacker)) {
+        const t = attacker as Troop;
+        if (t.type === 'succubus') { t.health = Math.min(t.maxHealth, t.health + damage * 0.5); }
+        if (t.type === 'ice_mage' && 'freezeTimer' in defender) { defender.isFrozen = true; defender.freezeTimer = 3000; }
+    }
+    if ('type' in attacker && (attacker as Projectile).type === 'meteor') {
+        // Meteors don't trigger lifesteal
+    }
+
     defender.health -= damage;
     this.spawnImpactParticles(defender.x + 30, 'y' in defender ? defender.y : CANVAS_HEIGHT - 120, '#FF453A');
   }
