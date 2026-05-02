@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
-import { GameEngine, CANVAS_WIDTH, CANVAS_HEIGHT } from '../engine/GameEngine';
+import { GameEngine } from '../engine/GameEngine';
 
 interface GameCanvasProps {
   engine: GameEngine;

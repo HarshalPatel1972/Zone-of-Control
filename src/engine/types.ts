@@ -94,10 +94,13 @@ export interface Emote {
 
 export type GameStatus = 'lobby' | 'playing' | 'victory' | 'defeat';
 
+export type GameMode = 'normal' | 'castle_wars' | 'super_castle_wars' | 'dark_age';
+
 export interface GameState {
-  mode: 'normal' | 'castle_wars' | 'super_castle_wars' | 'dark_age';
+  mode: GameMode;
   matchTime: number; // In seconds
   matchTimer: number; // Current seconds left
+  currentTime: number;
   playerCastle: Castle;
   opponentCastle: Castle;
   extraEnemyCastles: { id: string, x: number, health: number, maxHealth: number, status: 'alive' | 'destroyed' }[];

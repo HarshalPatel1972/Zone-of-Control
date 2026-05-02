@@ -1,18 +1,19 @@
 'use client';
 
 import React, { useState } from 'react';
+import { GameMode } from '@/engine/types';
 
 interface LobbyOverlayProps {
   roomId: string;
   isHost: boolean;
   onCopy: () => void;
-  onStartCpu: (diff: 'easy' | 'medium' | 'hard', mode: 'normal' | 'castle_wars' | 'super_castle_wars') => void;
+  onStartCpu: (diff: 'easy' | 'medium' | 'hard', mode: GameMode) => void;
 }
 
-export const LobbyOverlay: React.FC<LobbyOverlayProps> = ({ roomId: _roomId, isHost: _isHost, onCopy, onStartCpu }) => {
+export const LobbyOverlay: React.FC<LobbyOverlayProps> = ({ onCopy, onStartCpu }) => {
   const [copied, setCopied] = useState(false);
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
-  const [selectedMapMode, setSelectedMapMode] = useState<'normal' | 'castle_wars' | 'super_castle_wars'>('normal');
+  const [selectedMapMode, setSelectedMapMode] = useState<GameMode>('normal');
   const lobbyUrl = typeof window !== 'undefined' ? window.location.href : '';
 
   const handleCopy = () => {
@@ -71,7 +72,7 @@ export const LobbyOverlay: React.FC<LobbyOverlayProps> = ({ roomId: _roomId, isH
             </div>
 
             <div className="flex flex-col gap-2 py-2">
-                {(['normal', 'castle_wars', 'super_castle_wars'] as const).map(m => (
+                {(['normal', 'castle_wars', 'super_castle_wars', 'dark_age'] as const).map(m => (
                     <button
                         key={m}
                         onClick={() => setSelectedMapMode(m)}

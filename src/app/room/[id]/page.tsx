@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { GameEngine, TROOP_STATS, CASTLE_UPGRADES } from '@/engine/GameEngine';
-import { GameState, TroopType, Team, AbilityType } from '@/engine/types';
+import { GameState, GameMode, TroopType, Team, AbilityType } from '@/engine/types';
 import { GameCanvas } from '@/components/GameCanvas';
 import { LobbyOverlay } from '@/components/LobbyOverlay';
 import { GameOverOverlay } from '@/components/GameOverOverlay';
@@ -25,24 +25,26 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
     if (lastInitializedRoom === roomId) return;
 
     engine.reset();
-    setIsStarted(false);
-    setIsTraining(false);
+    Promise.resolve().then(() => {
+        setIsStarted(false);
+        setIsTraining(false);
+    });
     setLastInitializedRoom(roomId);
     
     // Auto-start training if params exist
     if (sParams.training === 'true') {
-        const mode = (sParams.mode as 'normal' | 'castle_wars' | 'super_castle_wars' | 'dark_age') || 'normal';
+        const mode = (sParams.mode as GameMode) || 'normal';
         const diff = (sParams.diff as 'easy' | 'medium' | 'hard') || 'medium';
         const mTime = parseInt(sParams.time as string) || 180;
         engine.setMode(mode);
         engine.setCpuDifficulty(diff);
         engine.setMatchTime(mTime);
         engine.start();
-        setIsStarted(true);
-        setIsTraining(true);
+        Promise.resolve().then(() => {
+            setIsStarted(true);
+            setIsTraining(true);
+        });
     }
-    
-    setGameState(engine.getState());
   }, [roomId, engine, sParams, lastInitializedRoom]);
 
   useEffect(() => {
@@ -71,7 +73,6 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
       engine.setMultiplayer(true);
       if (role === 'guest') {
         engine.setCameraX(4000 - 1600);
-        setGameState(engine.getState());
       }
     }
   }, [role, engine]);
@@ -79,18 +80,20 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
   useEffect(() => {
     if (isGameStarted) {
         engine.start();
-        setIsStarted(true);
+        Promise.resolve().then(() => {
+            setIsStarted(true);
+        });
     }
   }, [isGameStarted, engine]);
 
   const isHost = role === 'host' || isTraining;
 
-  const handleStartCpu = (diff: 'easy' | 'medium' | 'hard', mode: 'normal' | 'castle_wars' | 'super_castle_wars') => {
+  const handleStartCpu = (diff: 'easy' | 'medium' | 'hard', mode: GameMode) => {
     engine.setMode(mode || 'normal');
+    engine.setCpuDifficulty(diff);
     engine.start();
     setIsStarted(true);
     setIsTraining(true);
-    setGameState(engine.getState());
   };
 
   useEffect(() => {
@@ -232,7 +235,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                {(['meteor', 'lightning', 'iceFreeze', 'moon', 'superMeteor', 'heal', 'superHeal', 'shield'] as const).map(id => {
                  const abilities = isHost ? gameState.playerAbilities : gameState.opponentAbilities;
                  const data = abilities[id];
-                 const isReady = Date.now() - data.lastUsed >= data.cooldown;
+                 const isReady = gameState.currentTime - data.lastUsed >= data.cooldown;
                  const colors: Record<string, string> = { meteor: 'border-error/40 text-error', lightning: 'border-blue-400/40 text-blue-400', iceFreeze: 'border-cyan-300/40 text-cyan-300', moon: 'border-purple-400/40 text-purple-400', superMeteor: 'border-orange-600/40 text-orange-600', heal: 'border-success/40 text-success', superHeal: 'border-emerald-400/40 text-emerald-400', shield: 'border-gold/40 text-gold' };
                  
                  return (
@@ -329,7 +332,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                                 disabled={!isStarted || myGold < cost || isAtMax}
                                 className="glass-button flex flex-col items-center justify-center p-4 h-32 rounded-2xl group active:scale-95 disabled:opacity-20 hover:border-gold/50 transition-all"
                             >
-                                <img src={`/assets/${unit.asset}.png`} className="w-12 h-12 object-contain mb-2 group-hover:scale-110 transition-transform" />
+                                <img src={`/assets/${unit.asset}.png`} alt="" className="w-12 h-12 object-contain mb-2 group-hover:scale-110 transition-transform" />
                                 <span className="text-[10px] font-bold uppercase text-white/80">{unit.name}</span>
                                 <span className="text-[12px] font-black text-gold">${cost}</span>
                                 <span className="text-[8px] font-bold text-white/20">[{currentCount}/{maxCount}]</span>
@@ -370,7 +373,7 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                                 const cost = TROOP_STATS[troopTypeKey]?.cost || 0;
                                 return (
                                 <button key={unit.type} onClick={() => handleSpawn(unit.type as TroopType)} className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white/5 border border-white/5 active:bg-white/10 transition-all">
-                                    <img src={`/assets/${unit.asset}.png`} className="w-10 h-10 object-contain mb-2" />
+                                    <img src={`/assets/${unit.asset}.png`} alt="" className="w-10 h-10 object-contain mb-2" />
                                     <span className="text-[8px] font-black text-gold">${cost}</span>
                                 </button>
                                 );

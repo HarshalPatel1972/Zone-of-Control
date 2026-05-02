@@ -1,4 +1,4 @@
-import { GameState, Troop, Castle, Team, Particle, TroopType, CpuDifficulty, Projectile, AbilityType, Emote } from './types';
+import { GameState, GameMode, Troop, Castle, Team, Particle, TroopType, CpuDifficulty, Projectile, AbilityType, Emote } from './types';
 
 export const CANVAS_WIDTH = 6000; 
 export const CANVAS_HEIGHT = 900;
@@ -77,7 +77,7 @@ export class GameEngine {
     const statInit = { goldEarned: 150, troopsSpawned: 0, kills: 0, damageDealt: 0 };
 
     return {
-      mode: 'normal', matchTime: 180, matchTimer: 180,
+      mode: 'normal', matchTime: 180, matchTimer: 180, currentTime: Date.now(),
       playerCastle: { health: 12000, maxHealth: 12000, secondaryHealth: 12000, x: 100, width: 250, height: 400, team: 'player', level: 1, turretLevel: 0, lastTurretFire: 0, activeShield: 0 },
       opponentCastle: { health: 12000, maxHealth: 12000, secondaryHealth: 12000, x: 4000 - 350, width: 250, height: 400, team: 'opponent', level: 1, turretLevel: 0, lastTurretFire: 0, activeShield: 0 },
       extraEnemyCastles: [],
@@ -93,7 +93,7 @@ export class GameEngine {
     };
   }
 
-  public setMode(mode: 'normal' | 'castle_wars' | 'super_castle_wars') {
+  public setMode(mode: GameMode) {
     this.state.mode = mode;
     if (mode === 'castle_wars') {
         this.state.opponentCastle.x = 2000 - 350;
@@ -279,6 +279,7 @@ export class GameEngine {
   public update() {
     if (this.state.isPaused) return;
     const now = Date.now();
+    this.state.currentTime = now;
     
     if (now - this.state.lastManualScroll > 3000) this.state.isAutoCamera = true;
     if (this.state.isAutoCamera) {
@@ -467,7 +468,7 @@ export class GameEngine {
 
   private dealDamage(attacker: Troop | Projectile, defender: Troop | Castle) {
     if ('activeShield' in defender && defender.activeShield > 0) return;
-    let damage = 'damage' in attacker ? attacker.damage : (attacker as Troop).attackDamage;
+    const damage = 'damage' in attacker ? attacker.damage : (attacker as Troop).attackDamage;
     
     // SPECIAL EFFECTS
     if (!('damage' in attacker)) {
