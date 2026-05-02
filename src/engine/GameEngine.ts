@@ -102,6 +102,9 @@ export class GameEngine {
             { id: 'castle2', x: 4000 - 350, health: 20000, maxHealth: 20000, status: 'alive' },
             { id: 'castle3', x: 6000 - 350, health: 35000, maxHealth: 35000, status: 'alive' }
         ];
+        // Spawn Kings for enemy castles only
+        this.createKing(this.state.opponentCastle, 'opponent');
+        this.state.extraEnemyCastles.forEach(c => this.createKing(c as unknown as Castle, 'opponent'));
     } else if (mode === 'super_castle_wars') {
         this.state.playerCastle.maxHealth = 50000;
         this.state.playerCastle.health = 50000;
@@ -114,17 +117,6 @@ export class GameEngine {
         this.state.opponentCastle.secondaryHealth = 50000;
         this.state.opponentCastle.width = 400;
         this.state.opponentCastle.height = 600;
-        this.state.opponentCastle.x = 2000 - 350;
-
-        this.state.extraEnemyCastles = [
-            { id: 'castle2', x: 4000 - 350, health: 50000, maxHealth: 50000, status: 'alive' },
-            { id: 'castle3', x: 6000 - 350, health: 50000, maxHealth: 50000, status: 'alive' }
-        ];
-
-        // Spawn Kings for all castles
-        this.createKing(this.state.playerCastle, 'player');
-        this.createKing(this.state.opponentCastle, 'opponent');
-        this.state.extraEnemyCastles.forEach(c => this.createKing(c as unknown as Castle, 'opponent'));
     } else if (mode === 'dark_age') {
         this.state.playerCastle.health = Infinity;
         this.state.opponentCastle.health = Infinity;
