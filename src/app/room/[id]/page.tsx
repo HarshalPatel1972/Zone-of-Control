@@ -178,13 +178,17 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                     <span className="block text-[10px] font-black text-white/20 uppercase tracking-[0.3em]">Sector {roomId.substring(0,4)}</span>
                     <span className="text-2xl font-black tracking-tight">Theater Command — <span className={isHost ? 'text-success' : 'text-error'}>{isHost ? 'Western Flank' : 'Eastern Flank'}</span></span>
                 </div>
-                <div className="h-10 w-px bg-white/10 self-center"></div>
-                <div className="flex flex-col items-center justify-center">
-                    <span className="block text-[10px] font-black text-cyan-400/40 uppercase tracking-[0.3em]">Timer</span>
-                    <span className="text-3xl font-black text-cyan-400 tabular-nums">
-                        {Math.floor(gameState.matchTimer / 60)}:{String(gameState.matchTimer % 60).padStart(2, '0')}
-                    </span>
-                </div>
+                {gameState.mode === 'dark_age' && (
+                  <>
+                    <div className="h-10 w-px bg-white/10 self-center"></div>
+                    <div className="flex flex-col items-center justify-center">
+                        <span className="block text-[10px] font-black text-cyan-400/40 uppercase tracking-[0.3em]">Timer</span>
+                        <span className="text-3xl font-black text-cyan-400 tabular-nums">
+                            {Math.floor(gameState.matchTimer / 60)}:{String(gameState.matchTimer % 60).padStart(2, '0')}
+                        </span>
+                    </div>
+                  </>
+                )}
                 <div className="h-10 w-px bg-white/10 self-center"></div>
                 <div>
                     <span className="block text-[10px] font-black text-gold/40 uppercase tracking-[0.3em]">Treasury</span>
@@ -220,10 +224,14 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                     <span className="text-xs font-bold text-success uppercase">{myStats.kills}</span>
                     <div className="h-4 w-px bg-white/20"></div>
                     <span className="text-xs font-bold text-error uppercase">{enemyStats.kills}</span>
-                    <div className="h-4 w-px bg-white/20"></div>
-                    <span className="text-xs font-black text-cyan-400 tabular-nums">
-                        {Math.floor(gameState.matchTimer / 60)}:{String(gameState.matchTimer % 60).padStart(2, '0')}
-                    </span>
+                    {gameState.mode === 'dark_age' && (
+                      <>
+                        <div className="h-4 w-px bg-white/20"></div>
+                        <span className="text-xs font-black text-cyan-400 tabular-nums">
+                            {Math.floor(gameState.matchTimer / 60)}:{String(gameState.matchTimer % 60).padStart(2, '0')}
+                        </span>
+                      </>
+                    )}
                 </div>
             </div>
             <button onClick={() => window.location.href = '/'} className="p-2 bg-error/20 border border-error/40 rounded-full text-error backdrop-blur-md pointer-events-auto">
@@ -323,7 +331,8 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                         { type: 'super_bomb', name: 'NUKE', asset: 'knight' },
                         { type: 'succubus', name: 'SUCCUBUS', asset: 'berserker' },
                         { type: 'phoenix', name: 'PHOENIX', asset: 'angel' },
-                    ].map((unit) => {
+                        { type: 'super_lava_tank', name: 'LAVA TANK', asset: 'tank', heroOnly: true },
+                    ].filter(unit => !unit.heroOnly || isHost).map((unit) => {
                         const troopTypeKey = unit.type.toUpperCase() as keyof typeof TROOP_STATS;
                         const stats = TROOP_STATS[troopTypeKey];
                         const cost = stats?.cost || 0;
@@ -373,7 +382,8 @@ export default function RoomPage({ params, searchParams }: { params: Promise<{ i
                                 { type: 'super_bomb', name: 'NUKE', asset: 'knight' },
                                 { type: 'succubus', name: 'SUCCUBUS', asset: 'berserker' },
                                 { type: 'phoenix', name: 'PHOENIX', asset: 'angel' },
-                            ].map((unit) => {
+                                { type: 'super_lava_tank', name: 'LAVA TANK', asset: 'tank', heroOnly: true },
+                            ].filter(unit => !unit.heroOnly || isHost).map((unit) => {
                                 const troopTypeKey = unit.type.toUpperCase() as keyof typeof TROOP_STATS;
                                 const cost = TROOP_STATS[troopTypeKey]?.cost || 0;
                                 return (

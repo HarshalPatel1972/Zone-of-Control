@@ -20,7 +20,8 @@ export const TROOP_STATS = {
   SUCCUBUS: { cost: 150, health: 600, attackDamage: 45, attackRange: 60, attackCooldown: 800, speed: 3.8, size: 60, asset: 'berserker', maxCount: 8 },
   ICE_MAGE: { cost: 120, health: 300, attackDamage: 20, attackRange: 400, attackCooldown: 2000, speed: 2.2, size: 55, asset: 'archer', maxCount: 8 },
   PHOENIX: { cost: 700, health: 1200, attackDamage: 100, attackRange: 120, attackCooldown: 1200, speed: 4.5, size: 90, asset: 'angel', maxCount: 2 },
-  SUPER_MONSTER_KING: { cost: 0, health: 50000, attackDamage: 0, attackRange: 0, attackCooldown: 4000, speed: 0, size: 200, asset: 'super_monster', maxCount: 5 }
+  SUPER_MONSTER_KING: { cost: 0, health: 50000, attackDamage: 0, attackRange: 0, attackCooldown: 4000, speed: 0, size: 200, asset: 'super_monster', maxCount: 5 },
+  SUPER_LAVA_TANK: { cost: 1200, health: 8000, attackDamage: 50, attackRange: 600, attackCooldown: 3000, speed: 1.2, size: 130, asset: 'tank', maxCount: 2 }
 };
 
 export const CASTLE_UPGRADES = {
@@ -30,7 +31,7 @@ export const CASTLE_UPGRADES = {
 
 interface VisualEffect {
     id: string;
-    type: 'lightning' | 'moon' | 'ice' | 'shockwave' | 'fire_breath';
+    type: 'lightning' | 'moon' | 'ice' | 'shockwave' | 'fire_breath' | 'lava_pool';
     x: number;
     y: number;
     life: number;
@@ -321,7 +322,14 @@ export class GameEngine {
         }
     }
 
-    this.visualEffects.forEach(e => e.life -= 0.02);
+    this.visualEffects.forEach(e => {
+        if (e.type === 'lava_pool') {
+            const team = (e as any).team as Team;
+            const damage = 2; // Damage per tick (~120 dps)
+            this.state.troops.filter(t => t.team !== team && Math.abs(t.x - e.x) < 150).forEach(t => { t.health -= damage; });
+        }
+        e.life -= (e.type === 'lava_pool' ? 0.0033 : 0.02);
+    });
     this.visualEffects = this.visualEffects.filter(e => e.life > 0);
 
     this.state.troops.forEach(t => {
@@ -377,6 +385,18 @@ export class GameEngine {
               }
               this.state.screenShake = 30;
           }
+          } else if (t.type === 'super_lava_tank') {
+              const targetTeam = t.team === 'player' ? 'opponent' : 'player';
+              const target = this.state.troops.find(other => other.team === targetTeam && Math.abs(other.x - t.x) < 600);
+              if (target) {
+                  this.state.projectiles.push({
+                      id: Math.random().toString(),
+                      x: t.x, y: t.y - 100,
+                      vx: (target.x - t.x) / 60, vy: -15,
+                      team: t.team, damage: 50, type: 'lava'
+                  });
+              }
+          }
           t.lastSpecialTime = now;
       }
     });
@@ -384,7 +404,7 @@ export class GameEngine {
     if (now - this.state.lastIncomeTime >= 1000) { 
         this.state.gold += 20; this.state.opponentGold += 20; 
         this.state.lastIncomeTime = now; 
-        if (this.state.status === 'playing') this.state.matchTimer--;
+        if (this.state.status === 'playing' && this.state.mode === 'dark_age') this.state.matchTimer--;
     }
 
     this.state.emotes.forEach(e => e.life -= 0.02);
@@ -429,9 +449,25 @@ export class GameEngine {
 
     this.state.projectiles.forEach(p => {
       p.x += p.vx; p.y += p.vy; p.vy += 0.25;
-      this.state.troops.forEach(t => { if (t.team !== p.team && Math.abs(p.x - t.x) < 40 && Math.abs(p.y - (t.y - 40)) < 50) { this.dealDamage(p, t); if (p.type !== 'meteor') p.y = 9999; } });
+      this.state.troops.forEach(t => { if (t.team !== p.team && Math.abs(p.x - t.x) < 40 && Math.abs(p.y - (t.y - 40)) < 50) { 
+          this.dealDamage(p, t); 
+          if (p.type === 'lava') {
+              this.visualEffects.push({ id: Math.random().toString(), type: 'lava_pool', x: p.x, y: CANVAS_HEIGHT - 100, life: 1, maxLife: 1, color: '#FF4500', team: p.team } as any);
+              p.y = 9999;
+          } else if (p.type !== 'meteor') p.y = 9999; 
+      } });
       const eC = p.team === 'player' ? this.state.opponentCastle : this.state.playerCastle;
-      if (p.x >= eC.x && p.x <= eC.x + eC.width && p.y >= CANVAS_HEIGHT - eC.height - 100) { this.dealDamage(p, eC); p.y = 9999; }
+      if (p.x >= eC.x && p.x <= eC.x + eC.width && p.y >= CANVAS_HEIGHT - eC.height - 100) { 
+          this.dealDamage(p, eC); 
+          if (p.type === 'lava') {
+              this.visualEffects.push({ id: Math.random().toString(), type: 'lava_pool', x: p.x, y: CANVAS_HEIGHT - 100, life: 1, maxLife: 1, color: '#FF4500', team: p.team } as any);
+          }
+          p.y = 9999; 
+      }
+      if (p.type === 'lava' && p.y >= CANVAS_HEIGHT - 110) {
+          this.visualEffects.push({ id: Math.random().toString(), type: 'lava_pool', x: p.x, y: CANVAS_HEIGHT - 100, life: 1, maxLife: 1, color: '#FF4500', team: p.team } as any);
+          p.y = 9999;
+      }
     });
     this.state.projectiles = this.state.projectiles.filter(p => p.y < CANVAS_HEIGHT);
     
@@ -452,7 +488,7 @@ export class GameEngine {
     });
     this.state.troops = this.state.troops.filter(t => t.health > 0);
 
-    if (this.state.matchTimer <= 0) {
+    if (this.state.matchTimer <= 0 && this.state.mode === 'dark_age') {
         const pk = this.state.stats.player.kills;
         const ok = this.state.stats.opponent.kills;
         this.state.status = pk > ok ? 'victory' : (pk < ok ? 'defeat' : 'defeat');
@@ -558,6 +594,7 @@ export class GameEngine {
     else if (e.type === 'ice') { ctx.fillStyle = e.color; ctx.shadowBlur = 20; ctx.shadowColor = '#fff'; for (let i = 0; i < 10; i++) { const ix = e.x + (i - 5) * 100; ctx.beginPath(); ctx.moveTo(ix, e.y); ctx.lineTo(ix + 30, e.y - 150); ctx.lineTo(ix + 60, e.y); ctx.fill(); } } 
     else if (e.type === 'shockwave') { ctx.strokeStyle = e.color; ctx.lineWidth = 10 * e.life; ctx.beginPath(); ctx.ellipse(e.x, e.y, 800 * (1-e.life), 200 * (1-e.life), 0, 0, Math.PI*2); ctx.stroke(); } 
     else if (e.type === 'fire_breath') { const grad = ctx.createLinearGradient(e.x, e.y, e.x + 300, e.y); grad.addColorStop(0, '#FF453A'); grad.addColorStop(1, 'transparent'); ctx.fillStyle = grad; ctx.fillRect(e.x, e.y, 300, 100); }
+    else if (e.type === 'lava_pool') { const grad = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, 150); grad.addColorStop(0, '#FF4500'); grad.addColorStop(0.7, '#8B0000'); grad.addColorStop(1, 'transparent'); ctx.fillStyle = grad; ctx.beginPath(); ctx.ellipse(e.x, e.y, 150, 40, 0, 0, Math.PI*2); ctx.fill(); }
     ctx.restore();
   }
 
@@ -581,6 +618,10 @@ export class GameEngine {
   }
 
   private drawEmote(ctx: CanvasRenderingContext2D, e: Emote) { ctx.save(); ctx.globalAlpha = e.life; ctx.fillStyle = '#fff'; ctx.font = '40px Inter'; ctx.textAlign = 'center'; ctx.fillText(e.type, e.x, e.y - (1 - e.life) * 50); ctx.restore(); }
-  private drawProjectile(ctx: CanvasRenderingContext2D, p: Projectile) { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Math.atan2(p.vy, p.vx)); if (p.type === 'meteor') { const grad = ctx.createLinearGradient(-40, 0, 0, 0); grad.addColorStop(0, 'transparent'); grad.addColorStop(1, '#FF453A'); ctx.fillStyle = grad; ctx.fillRect(-60, -10, 60, 20); ctx.fillStyle = '#FFD60A'; ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI*2); ctx.fill(); } else { ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-15, 0); ctx.lineTo(0, 0); ctx.stroke(); } ctx.restore(); }
+  private drawProjectile(ctx: CanvasRenderingContext2D, p: Projectile) { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Math.atan2(p.vy, p.vx)); if (p.type === 'meteor') { const grad = ctx.createLinearGradient(-40, 0, 0, 0); grad.addColorStop(0, 'transparent'); grad.addColorStop(1, '#FF453A'); ctx.fillStyle = grad; ctx.fillRect(-60, -10, 60, 20); ctx.fillStyle = '#FFD60A'; ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI*2); ctx.fill(); } 
+    else if (p.type === 'lava') { ctx.fillStyle = '#FF4500'; ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = '#FFD60A'; ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI*2); ctx.fill(); }
+    else { ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-15, 0); ctx.lineTo(0, 0); ctx.stroke(); } 
+    ctx.restore(); 
+  }
   private drawParticle(ctx: CanvasRenderingContext2D, p: Particle) { ctx.globalAlpha = p.life; ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, p.size, p.size); ctx.globalAlpha = 1; }
 }
