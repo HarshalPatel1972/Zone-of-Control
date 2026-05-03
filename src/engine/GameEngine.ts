@@ -325,7 +325,7 @@ export class GameEngine {
     this.visualEffects.forEach(e => {
         if (e.type === 'lava_pool') {
             const team = (e as any).team as Team;
-            const damage = 2; // Damage per tick (~120 dps)
+            const damage = 200; // Buffed 100x (~12000 dps)
             this.state.troops.filter(t => t.team !== team && Math.abs(t.x - e.x) < 150).forEach(t => { t.health -= damage; });
         }
         e.life -= (e.type === 'lava_pool' ? 0.0033 : 0.02);
