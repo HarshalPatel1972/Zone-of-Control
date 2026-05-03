@@ -384,7 +384,6 @@ export class GameEngine {
                   });
               }
               this.state.screenShake = 30;
-          }
           } else if (t.type === 'super_lava_tank') {
               const targetTeam = t.team === 'player' ? 'opponent' : 'player';
               const target = this.state.troops.find(other => other.team === targetTeam && Math.abs(other.x - t.x) < 600);
