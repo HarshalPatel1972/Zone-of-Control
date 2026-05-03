@@ -16,7 +16,7 @@ export const TROOP_STATS = {
   TANK: { cost: 250, health: 5000, attackDamage: 25, attackRange: 40, attackCooldown: 5000, speed: 1.4, size: 110, asset: 'tank', maxCount: 5 },
   SUPER_MONSTER: { cost: 2000, health: 15000, attackDamage: 300, attackRange: 200, attackCooldown: 3000, speed: 2.0, size: 180, asset: 'hero', maxCount: 1 },
   BOMB: { cost: 50, health: 50, attackDamage: 400, attackRange: 60, attackCooldown: 1000, speed: 5.0, size: 45, asset: 'knight', maxCount: 10 },
-  SUPER_BOMB: { cost: 400, health: 200, attackDamage: 4000, attackRange: 100, attackCooldown: 1000, speed: 4.0, size: 80, asset: 'knight', maxCount: 3 },
+  SUPER_BOMB: { cost: 400, health: 200, attackDamage: 40000, attackRange: 100, attackCooldown: 1000, speed: 6.0, size: 80, asset: 'knight', maxCount: 15 },
   SUCCUBUS: { cost: 150, health: 600, attackDamage: 45, attackRange: 60, attackCooldown: 800, speed: 3.8, size: 60, asset: 'berserker', maxCount: 8 },
   ICE_MAGE: { cost: 120, health: 300, attackDamage: 20, attackRange: 400, attackCooldown: 2000, speed: 2.2, size: 55, asset: 'archer', maxCount: 8 },
   PHOENIX: { cost: 700, health: 1200, attackDamage: 100, attackRange: 120, attackCooldown: 1200, speed: 4.5, size: 90, asset: 'angel', maxCount: 2 },
@@ -434,7 +434,7 @@ export class GameEngine {
       else if (target && !troop.isFrozen) { 
           if (troop.type === 'bomb' || troop.type === 'super_bomb') {
               const blastRadius = troop.type === 'super_bomb' ? 600 : 250;
-              const damage = troop.type === 'super_bomb' ? 4000 : 400;
+              const damage = troop.type === 'super_bomb' ? 40000 : 400;
               this.visualEffects.push({ id: Math.random().toString(), type: 'shockwave', x: troop.x, y: troop.y, life: 1, maxLife: 1, color: troop.type === 'super_bomb' ? '#FFD60A' : '#FF453A' });
               this.state.troops.filter(other => other.team !== troop.team && Math.abs(other.x - troop.x) < blastRadius).forEach(other => { other.health -= damage; });
               troop.health = 0; // Detonate
