@@ -21,7 +21,7 @@ export const TROOP_STATS = {
   ICE_MAGE: { cost: 120, health: 300, attackDamage: 20, attackRange: 400, attackCooldown: 2000, speed: 2.2, size: 55, asset: 'archer', maxCount: 8 },
   PHOENIX: { cost: 700, health: 1200, attackDamage: 100, attackRange: 120, attackCooldown: 1200, speed: 4.5, size: 90, asset: 'angel', maxCount: 2 },
   SUPER_MONSTER_KING: { cost: 0, health: 50000, attackDamage: 0, attackRange: 0, attackCooldown: 4000, speed: 0, size: 200, asset: 'super_monster', maxCount: 5 },
-  SUPER_LAVA_TANK: { cost: 1200, health: 8000, attackDamage: 50, attackRange: 600, attackCooldown: 3000, speed: 1.2, size: 130, asset: 'tank', maxCount: 2 }
+  SUPER_LAVA_TANK: { cost: 1200, health: 8000, attackDamage: 50, attackRange: 600, attackCooldown: 1000, speed: 1.2, size: 130, asset: 'tank', maxCount: 10 }
 };
 
 export const CASTLE_UPGRADES = {
@@ -326,7 +326,7 @@ export class GameEngine {
         if (e.type === 'lava_pool') {
             const team = (e as any).team as Team;
             const damage = 200; // Buffed 100x (~12000 dps)
-            this.state.troops.filter(t => t.team !== team && Math.abs(t.x - e.x) < 150).forEach(t => { t.health -= damage; });
+            this.state.troops.filter(t => t.team !== team && Math.abs(t.x - e.x) < 225).forEach(t => { t.health -= damage; });
         }
         e.life -= (e.type === 'lava_pool' ? 0.0033 : 0.02);
     });
@@ -593,7 +593,7 @@ export class GameEngine {
     else if (e.type === 'ice') { ctx.fillStyle = e.color; ctx.shadowBlur = 20; ctx.shadowColor = '#fff'; for (let i = 0; i < 10; i++) { const ix = e.x + (i - 5) * 100; ctx.beginPath(); ctx.moveTo(ix, e.y); ctx.lineTo(ix + 30, e.y - 150); ctx.lineTo(ix + 60, e.y); ctx.fill(); } } 
     else if (e.type === 'shockwave') { ctx.strokeStyle = e.color; ctx.lineWidth = 10 * e.life; ctx.beginPath(); ctx.ellipse(e.x, e.y, 800 * (1-e.life), 200 * (1-e.life), 0, 0, Math.PI*2); ctx.stroke(); } 
     else if (e.type === 'fire_breath') { const grad = ctx.createLinearGradient(e.x, e.y, e.x + 300, e.y); grad.addColorStop(0, '#FF453A'); grad.addColorStop(1, 'transparent'); ctx.fillStyle = grad; ctx.fillRect(e.x, e.y, 300, 100); }
-    else if (e.type === 'lava_pool') { const grad = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, 150); grad.addColorStop(0, '#FF4500'); grad.addColorStop(0.7, '#8B0000'); grad.addColorStop(1, 'transparent'); ctx.fillStyle = grad; ctx.beginPath(); ctx.ellipse(e.x, e.y, 150, 40, 0, 0, Math.PI*2); ctx.fill(); }
+    else if (e.type === 'lava_pool') { const grad = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, 225); grad.addColorStop(0, '#FF4500'); grad.addColorStop(0.7, '#8B0000'); grad.addColorStop(1, 'transparent'); ctx.fillStyle = grad; ctx.beginPath(); ctx.ellipse(e.x, e.y, 225, 60, 0, 0, Math.PI*2); ctx.fill(); }
     ctx.restore();
   }
 
